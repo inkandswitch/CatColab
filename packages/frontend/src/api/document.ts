@@ -119,7 +119,11 @@ export function makeLiveDoc<Doc extends Document>(
 /** Create a Solid Store that tracks an Automerge document. */
 export function makeDocHandleReactive<T extends object>(
     handle: DocHandle<T>
+<<<<<<< HEAD
 ): T {
+=======
+): Promise<T> {
+>>>>>>> 0353bd87 (getting closer)
     const init = handle.doc();
 
     const [store, setStore] = createStore<T>(init as T);
