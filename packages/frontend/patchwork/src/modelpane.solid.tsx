@@ -11,6 +11,17 @@ import { ModelPane } from "../../src/model/model_editor";
 import { getLiveModel } from "../../src/model/document";
 import type { Repo } from "@automerge/automerge-repo";
 
+// Import necessary CSS for CatColab components
+import "../../src/index.css";
+import "../../src/notebook/notebook_editor.css";
+import "../../src/notebook/notebook_cell.css";
+import "../../src/model/model_editor.css";
+import "../../src/model/object_cell_editor.css";
+import "../../src/model/morphism_cell_editor.css";
+import "../../src/stdlib/arrow_styles.module.css";
+import "../../src/components/form.css";
+import "../../src/components/fixed_table_editor.css";
+
 interface ModelPaneProps {
     docUrl: string;
     repo: Repo;

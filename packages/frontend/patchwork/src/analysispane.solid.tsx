@@ -13,6 +13,19 @@ import {
     AnalysisNotebookEditor,
 } from "../../src/analysis/analysis_editor";
 
+// Import necessary CSS for CatColab components
+import "../../src/index.css";
+import "../../src/notebook/notebook_editor.css";
+import "../../src/notebook/notebook_cell.css";
+import "../../src/model/model_editor.css";
+import "../../src/model/object_cell_editor.css";
+import "../../src/model/morphism_cell_editor.css";
+import "../../src/stdlib/arrow_styles.module.css";
+import "../../src/components/form.css";
+import "../../src/components/fixed_table_editor.css";
+import "../../src/stdlib/analyses/simulation.css";
+import "../../src/stdlib/analyses/submodel_graphs.css";
+
 interface AnalysisPaneProps {
     docUrl: string;
     repo: Repo;
