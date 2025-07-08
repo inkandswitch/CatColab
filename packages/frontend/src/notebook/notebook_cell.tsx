@@ -8,9 +8,15 @@ import type { DocHandle, Prop } from "@automerge/automerge-repo";
 import Popover from "@corvu/popover";
 import { createAutofocus } from "@solid-primitives/autofocus";
 import type { EditorView } from "prosemirror-view";
-import { type JSX, Show, createEffect, createSignal, onCleanup } from "solid-js";
+import {
+    type JSX,
+    Show,
+    createEffect,
+    createSignal,
+    onCleanup,
+} from "solid-js";
 
-import type { Uuid } from "catlog-wasm";
+import type { Cell, Uuid } from "catlog-wasm";
 import {
     type Completion,
     Completions,
@@ -84,7 +90,9 @@ const createCellDragData = (cellId: Uuid) => ({
 });
 
 /** Check whether the drag data is of notebook cell type. */
-export function isCellDragData(data: Record<string | symbol, unknown>): data is CellDragData {
+export function isCellDragData(
+    data: Record<string | symbol, unknown>
+): data is CellDragData {
     return Boolean(data[cellDragDataKey]);
 }
 
@@ -98,6 +106,7 @@ export function NotebookCell(props: {
     actions: CellActions;
     children: JSX.Element;
     tag?: string;
+    annotation?: Annotation<Uuid, Cell<unknown>>;
 }) {
     let rootRef!: HTMLDivElement;
     let handleRef!: HTMLButtonElement;
@@ -105,7 +114,8 @@ export function NotebookCell(props: {
     const [isGutterVisible, setGutterVisible] = createSignal(false);
     const showGutter = () => setGutterVisible(true);
     const hideGutter = () => setGutterVisible(false);
-    const visibility = (isVisible: boolean) => (isVisible ? "visible" : "hidden");
+    const visibility = (isVisible: boolean) =>
+        isVisible ? "visible" : "hidden";
 
     const [isMenuOpen, setMenuOpen] = createSignal(false);
     const openMenu = () => setMenuOpen(true);
@@ -154,13 +164,23 @@ export function NotebookCell(props: {
                         allowedEdges: ["top", "bottom"],
                     });
                 },
-            }),
+            })
         );
         onCleanup(cleanup);
     });
 
     return (
-        <div class="cell" onMouseEnter={showGutter} onMouseLeave={hideGutter} ref={rootRef}>
+        <div
+            class="cell"
+            classList={{
+                "cell-added": props.annotation?.type === "added",
+                "cell-deleted": props.annotation?.type === "deleted",
+                "cell-changed": props.annotation?.type === "changed",
+            }}
+            onMouseEnter={showGutter}
+            onMouseLeave={hideGutter}
+            ref={rootRef}
+        >
             <div class="cell-gutter">
                 <IconButton
                     onClick={props.actions.createBelow}
@@ -180,7 +200,11 @@ export function NotebookCell(props: {
                     <Popover.Anchor as="span">
                         <IconButton
                             onClick={openMenu}
-                            style={{ visibility: visibility(isGutterVisible() || isMenuOpen()) }}
+                            style={{
+                                visibility: visibility(
+                                    isGutterVisible() || isMenuOpen()
+                                ),
+                            }}
                             tooltip="Drag to move cell or click to open menu"
                             ref={handleRef}
                         >
@@ -189,7 +213,10 @@ export function NotebookCell(props: {
                     </Popover.Anchor>
                     <Popover.Portal>
                         <Popover.Content class="popup">
-                            <Completions completions={completions()} onComplete={closeMenu} />
+                            <Completions
+                                completions={completions()}
+                                onComplete={closeMenu}
+                            />
                         </Popover.Content>
                     </Popover.Portal>
                 </Popover>

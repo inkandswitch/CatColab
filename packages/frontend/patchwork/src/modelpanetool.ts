@@ -5,7 +5,10 @@ import React, { useRef, useEffect } from "react";
 import { createComponent, render } from "solid-js/web";
 import { ModelPaneComponent } from "./modelpane.solid";
 
-export const Tool: React.FC<EditorProps<Doc, string>> = ({ docUrl }) => {
+export const Tool: React.FC<EditorProps<Doc, string>> = ({
+    docUrl,
+    annotations,
+}) => {
     const handle = useDocHandle<Doc>(docUrl, { suspense: true });
     const repo = useRepo();
 
@@ -24,7 +27,12 @@ export const Tool: React.FC<EditorProps<Doc, string>> = ({ docUrl }) => {
             }
 
             solidDisposeRef.current = render(
-                () => createComponent(ModelPaneComponent, { docUrl, repo }),
+                () =>
+                    createComponent(ModelPaneComponent, {
+                        docUrl,
+                        repo,
+                        annotations,
+                    }),
                 solidContainerRef.current
             );
         }

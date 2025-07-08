@@ -10,16 +10,20 @@ import { LiveModelContext } from "../../src/model/context";
 import { ModelPane } from "../../src/model/model_editor";
 import { getLiveModel } from "../../src/model/document";
 import type { Repo } from "@automerge/automerge-repo";
+import { Annotation } from "@patchwork/sdk/versionControl";
+import { Cell, Uuid } from "catlog-wasm";
 
 interface ModelPaneProps {
     docUrl: string;
     repo: Repo;
+    annotations: Annotation<Uuid, Cell<unknown>>[];
 }
 
 export function ModelPaneComponent(props: ModelPaneProps) {
     const [mounted, setMounted] = createSignal(false);
 
     const api = { repo: props.repo };
+    const annotations = props.annotations;
 
     onMount(() => {
         setMounted(true);
@@ -80,7 +84,10 @@ export function ModelPaneComponent(props: ModelPaneProps) {
                                 <TheoryLibraryContext.Provider
                                     value={stdTheories}
                                 >
-                                    <ModelPane liveModel={liveModel()} />
+                                    <ModelPane
+                                        liveModel={liveModel()!}
+                                        annotations={annotations}
+                                    />
                                 </TheoryLibraryContext.Provider>
                             </ApiContext.Provider>
                         );

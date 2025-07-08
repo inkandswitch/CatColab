@@ -7,6 +7,18 @@
     justify-content: space-between;
 }
 
+.cell.cell-added {
+    background-color: #f0fdf4;
+}
+
+.cell.cell-changed {
+    background-color: #fefce8;
+}
+
+.cell.cell-deleted {
+    background-color:#ffe2e2;
+}
+
 .cell-gutter {
     position: absolute;
     top: 50%;
