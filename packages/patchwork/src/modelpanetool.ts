@@ -28,6 +28,8 @@ export const Tool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
             return;
         }
 
+        console.log("remount", docUrl);
+
         if (solidContainerRef.current) {
             // Clean up previous render
             if (solidDisposeRef.current) {

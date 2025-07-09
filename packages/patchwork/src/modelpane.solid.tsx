@@ -1,11 +1,4 @@
-import {
-    Accessor,
-    createResource,
-    onMount,
-    Show,
-    createEffect,
-    createSignal,
-} from "solid-js";
+import { Accessor, createResource, onMount, Show } from "solid-js";
 
 import type { Repo } from "@automerge/automerge-repo";
 import { Annotation } from "@patchwork/sdk/versionControl";
