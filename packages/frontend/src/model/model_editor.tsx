@@ -1,5 +1,13 @@
 import { useParams } from "@solidjs/router";
-import { Match, Show, Switch, createResource, useContext } from "solid-js";
+import {
+    Accessor,
+    Match,
+    Show,
+    Switch,
+    createResource,
+    useContext,
+    createEffect,
+} from "solid-js";
 import invariant from "tiny-invariant";
 
 import type { Cell, ModelJudgment, Uuid } from "catlog-wasm";
@@ -79,7 +87,7 @@ export function ModelDocumentEditor(props: { liveModel: LiveModelDocument }) {
  */
 export function ModelPane(props: {
     liveModel: LiveModelDocument;
-    annotations?: Annotation<Uuid, Cell<unknown>>[];
+    annotations: Accessor<Annotation<Uuid, Cell<unknown>>[]>;
 }) {
     const theories = useContext(TheoryLibraryContext);
     invariant(theories, "Library of theories should be provided as context");
@@ -125,7 +133,7 @@ export function ModelPane(props: {
  */
 export function ModelNotebookEditor(props: {
     liveModel: LiveModelDocument;
-    annotations?: Annotation<Uuid, Cell<unknown>>[];
+    annotations: Accessor<Annotation<Uuid, Cell<unknown>>[]>;
 }) {
     const liveDoc = () => props.liveModel.liveDoc;
 

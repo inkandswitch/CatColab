@@ -1,4 +1,4 @@
-import { type Plugin } from "@patchwork/sdk";
+import { type Plugin } from "@patchwork/sdk/plugins";
 
 import "./index.css";
 

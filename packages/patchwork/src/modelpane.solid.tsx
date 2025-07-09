@@ -1,32 +1,31 @@
-/** @jsxRuntime automatic */
-/** @jsxImportSource solid-js */
-/* eslint-disable react/no-unknown-property */
+import {
+    Accessor,
+    createResource,
+    onMount,
+    Show,
+    createEffect,
+    createSignal,
+} from "solid-js";
 
-import { createSignal, onMount, createResource, Show } from "solid-js";
-
-import { ApiContext } from "../../src/api";
-import { stdTheories, TheoryLibraryContext } from "../../src/stdlib";
-import { LiveModelContext } from "../../src/model/context";
-import { ModelPane } from "../../src/model/model_editor";
-import { getLiveModel } from "../../src/model/document";
 import type { Repo } from "@automerge/automerge-repo";
 import { Annotation } from "@patchwork/sdk/versionControl";
 import { Cell, Uuid } from "catlog-wasm";
+import { ApiContext } from "../../frontend/src/api";
+import { LiveModelContext } from "../../frontend/src/model/context";
+import { getLiveModel } from "../../frontend/src/model/document";
+import { ModelPane } from "../../frontend/src/model/model_editor";
+import { stdTheories, TheoryLibraryContext } from "../../frontend/src/stdlib";
 
 interface ModelPaneProps {
     docUrl: string;
     repo: Repo;
-    annotations: Annotation<Uuid, Cell<unknown>>[];
+    annotations: Accessor<Annotation<Uuid, Cell<unknown>>[]>;
 }
 
 export function ModelPaneComponent(props: ModelPaneProps) {
-    const [mounted, setMounted] = createSignal(false);
-
     const api = { repo: props.repo };
-    const annotations = props.annotations;
 
     onMount(() => {
-        setMounted(true);
         console.log("=== ModelPane Mount (Same Import Paths) ===");
     });
 
@@ -86,7 +85,7 @@ export function ModelPaneComponent(props: ModelPaneProps) {
                                 >
                                     <ModelPane
                                         liveModel={liveModel()!}
-                                        annotations={annotations}
+                                        annotations={props.annotations}
                                     />
                                 </TheoryLibraryContext.Provider>
                             </ApiContext.Provider>

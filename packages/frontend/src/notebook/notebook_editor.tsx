@@ -5,6 +5,7 @@ import type { DocHandle, Prop } from "@automerge/automerge-repo";
 import { type KbdKey, createShortcut } from "@solid-primitives/keyboard";
 import ListPlus from "lucide-solid/icons/list-plus";
 import {
+    Accessor,
     type Component,
     For,
     Match,
@@ -85,7 +86,7 @@ export function NotebookEditor<T>(props: {
     // FIXME: Remove this option once we fix focus management.
     noShortcuts?: boolean;
 
-    annotations?: Annotation<Uuid, Cell<unknown>>[];
+    annotations: Accessor<Annotation<Uuid, Cell<unknown>>[]>;
 }) {
     const [activeCell, setActiveCell] = createSignal(
         props.notebook.cells.length > 0 ? 0 : -1
@@ -185,6 +186,10 @@ export function NotebookEditor<T>(props: {
         );
     });
 
+    createEffect(() => {
+        console.log("change annotations in editor", props.annotations());
+    });
+
     // Set up drag and drop of notebook cells.
     createEffect(() => {
         const cleanup = monitorForElements({
@@ -251,9 +256,15 @@ export function NotebookEditor<T>(props: {
             <ul class="notebook-cells">
                 <For each={props.notebook.cells}>
                     {(cell, i) => {
-                        const annotation = props.annotations?.find(
-                            (annotation) => annotation.anchor === cell.id
-                        );
+                        // Create a derived signal that will track annotations() changes
+                        const cellAnnotation = () =>
+                            props
+                                .annotations()
+                                ?.find(
+                                    (annotation) =>
+                                        annotation.anchor === cell.id
+                                );
+
                         const isActive = () => activeCell() === i();
                         const cellActions: CellActions = {
                             activateAbove() {
@@ -341,7 +352,7 @@ export function NotebookEditor<T>(props: {
                                             ? props.cellLabel?.(cell.content)
                                             : undefined
                                     }
-                                    annotation={annotation}
+                                    annotation={cellAnnotation()}
                                 >
                                     <Switch>
                                         <Match when={cell.tag === "rich-text"}>

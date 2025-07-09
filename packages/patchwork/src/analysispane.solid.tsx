@@ -5,13 +5,13 @@
 import { createResource, Show } from "solid-js";
 import type { Repo } from "@automerge/automerge-repo";
 
-import { ApiContext } from "../../src/api";
-import { stdTheories, TheoryLibraryContext } from "../../src/stdlib";
-import { getLiveAnalysis } from "../../src/analysis";
+import { ApiContext } from "../../frontend/src/api";
+import { stdTheories, TheoryLibraryContext } from "../../frontend/src/stdlib";
+import { getLiveAnalysis } from "../../frontend/src/analysis";
 import {
     AnalysisDocumentEditor,
     AnalysisNotebookEditor,
-} from "../../src/analysis/analysis_editor";
+} from "../../frontend/src/analysis/analysis_editor";
 
 interface AnalysisPaneProps {
     docUrl: string;

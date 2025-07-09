@@ -1,11 +1,14 @@
 import { useDocHandle, useRepo } from "@automerge/automerge-repo-react-hooks";
 import { EditorProps } from "@patchwork/sdk";
 import { Doc } from "./datatype";
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useMemo } from "react";
 import { createComponent, render } from "solid-js/web";
 import { ModelPaneComponent } from "./modelpane.solid";
+import { Annotation } from "@patchwork/sdk/versionControl";
+import { Cell, Uuid } from "catlog-wasm";
+import { createSignal } from "../../frontend/node_modules/.pnpm/solid-js@1.9.2/node_modules/solid-js";
 
-export const Tool: React.FC<EditorProps<Doc, string>> = ({
+export const Tool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
     docUrl,
     annotations,
 }) => {
@@ -14,6 +17,11 @@ export const Tool: React.FC<EditorProps<Doc, string>> = ({
 
     const solidContainerRef = useRef<HTMLDivElement>(null);
     const solidDisposeRef = useRef<(() => void) | null>(null);
+
+    const [getAnnotations, setAnnotations] = useMemo(
+        () => createSignal<Annotation<Uuid, Cell<unknown>>[]>([]),
+        []
+    );
 
     useEffect(() => {
         if (!handle || !repo) {
@@ -31,7 +39,7 @@ export const Tool: React.FC<EditorProps<Doc, string>> = ({
                     createComponent(ModelPaneComponent, {
                         docUrl,
                         repo,
-                        annotations,
+                        annotations: getAnnotations,
                     }),
                 solidContainerRef.current
             );
@@ -45,6 +53,10 @@ export const Tool: React.FC<EditorProps<Doc, string>> = ({
             }
         };
     }, [docUrl, handle]);
+
+    useEffect(() => {
+        setAnnotations(annotations || []);
+    }, [annotations]);
 
     if (!handle) {
         return null;
