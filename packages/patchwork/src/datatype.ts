@@ -24,9 +24,12 @@ export const patchesToAnnotations = (
     docBefore: Doc,
     patches: A.Patch[]
 ) => {
-    return patches.flatMap((patch) => {
+    const changedCells = new Set<Uuid>();
+    const annotations: Annotation<Uuid, Cell<unknown>>[] = [];
+
+    patches.forEach((patch) => {
         if (patch.path[0] !== "notebook" || patch.path[1] !== "cells") {
-            return [];
+            return;
         }
 
         const cellIndex = patch.path[2] as number;
@@ -35,21 +38,22 @@ export const patchesToAnnotations = (
             switch (patch.action) {
                 case "del": {
                     const cell = docBefore.notebook.cells[cellIndex];
-                    return {
+                    annotations.push({
                         type: "deleted",
                         deleted: cell,
                         anchor: cell.id,
-                    } as Annotation<Uuid, Cell<unknown>>;
+                    } as Annotation<Uuid, Cell<unknown>>);
+                    return;
                 }
                 case "insert": {
                     const cell = doc.notebook.cells[cellIndex];
-                    return {
+                    annotations.push({
                         type: "added",
                         added: cell,
                         anchor: cell.id,
-                    } as Annotation<Uuid, Cell<unknown>>;
+                    } as Annotation<Uuid, Cell<unknown>>);
+                    return;
                 }
-
                 // todo: support changed
             }
         }
@@ -60,17 +64,23 @@ export const patchesToAnnotations = (
             case "del": {
                 const before = docBefore.notebook.cells[cellIndex];
                 const after = doc.notebook.cells[cellIndex];
-                return {
+
+                if (changedCells.has(after.id)) {
+                    return;
+                }
+                annotations.push({
                     type: "changed",
                     before: before,
                     after: after,
                     anchor: after.id,
-                } as Annotation<Uuid, Cell<unknown>>;
+                } as Annotation<Uuid, Cell<unknown>>);
+                changedCells.add(after.id);
+                return;
             }
         }
-
-        return [];
     });
+
+    return annotations;
 };
 
 const valueOfAnchor = (doc: Doc, anchor: Uuid): Cell<unknown> => {
