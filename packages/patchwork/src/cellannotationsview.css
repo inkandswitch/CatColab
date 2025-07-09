@@ -1,0 +1,25 @@
+.annotation-added {
+  width: fit-content;
+  background-color: #f0fdf4;
+}
+
+.annotation-changed {
+  width: fit-content;
+  background-color: #fefce8;
+}
+
+.annotation-deleted {
+  width: fit-content;
+  background-color:#ffe2e2;
+}
+
+.annotation-label {
+  font-size: 0.75em;
+  color: darkgray;
+}
+
+.annotation {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}

@@ -31,7 +31,13 @@ export const plugins: Plugin<any>[] = [
         supportedDataTypes: ["catcolab-model"],
         async load() {
             const { Tool } = await import("./modelpanetool");
-            return { EditorComponent: Tool };
+            const { CellAnnotationsView } = await import(
+                "./cellannotationsview"
+            );
+            return {
+                EditorComponent: Tool,
+                AnnotationsViewComponent: CellAnnotationsView,
+            };
         },
     },
     {

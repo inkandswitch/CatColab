@@ -34,6 +34,7 @@ import Plus from "lucide-solid/icons/plus";
 import Trash2 from "lucide-solid/icons/trash-2";
 
 import "./notebook_cell.css";
+import { Annotation } from "@patchwork/sdk/versionControl";
 
 /** Actions invokable *within* a cell but affecting the larger notebook state.
 

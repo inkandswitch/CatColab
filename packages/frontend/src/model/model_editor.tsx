@@ -87,7 +87,7 @@ export function ModelDocumentEditor(props: { liveModel: LiveModelDocument }) {
  */
 export function ModelPane(props: {
     liveModel: LiveModelDocument;
-    annotations: Accessor<Annotation<Uuid, Cell<unknown>>[]>;
+    annotations?: Accessor<Annotation<Uuid, Cell<unknown>>[]>;
 }) {
     const theories = useContext(TheoryLibraryContext);
     invariant(theories, "Library of theories should be provided as context");
@@ -133,7 +133,7 @@ export function ModelPane(props: {
  */
 export function ModelNotebookEditor(props: {
     liveModel: LiveModelDocument;
-    annotations: Accessor<Annotation<Uuid, Cell<unknown>>[]>;
+    annotations?: Accessor<Annotation<Uuid, Cell<unknown>>[]>;
 }) {
     const liveDoc = () => props.liveModel.liveDoc;
 
@@ -161,7 +161,7 @@ export function ModelNotebookEditor(props: {
 
 /** Editor for a notebook cell in a model notebook.
  */
-function ModelCellEditor(props: FormalCellEditorProps<ModelJudgment>) {
+export function ModelCellEditor(props: FormalCellEditorProps<ModelJudgment>) {
     return (
         <Switch>
             <Match when={props.content.tag === "object"}>
