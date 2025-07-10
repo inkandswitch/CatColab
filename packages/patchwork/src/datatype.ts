@@ -46,6 +46,7 @@ export const patchesToAnnotations = (
                     return;
                 }
                 case "insert": {
+                    changedCells.add(doc.notebook.cells[cellIndex].id);
                     const cell = doc.notebook.cells[cellIndex];
                     annotations.push({
                         type: "added",
@@ -60,14 +61,27 @@ export const patchesToAnnotations = (
 
         switch (patch.action) {
             case "insert":
-            case "splice":
-            case "del": {
-                const before = docBefore.notebook.cells[cellIndex];
+            case "splice": {
                 const after = doc.notebook.cells[cellIndex];
 
                 if (changedCells.has(after.id)) {
                     return;
                 }
+
+                const before = docBefore.notebook.cells.find(
+                    (cell) => cell.id === after.id
+                );
+
+                if (!before) {
+                    annotations.push({
+                        type: "added",
+                        added: after,
+                        anchor: after.id,
+                    } as Annotation<Uuid, Cell<unknown>>);
+                    changedCells.add(after.id);
+                    return;
+                }
+
                 annotations.push({
                     type: "changed",
                     before: before,
