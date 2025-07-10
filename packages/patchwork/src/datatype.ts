@@ -21,11 +21,18 @@ export type Doc = HasVersionControlMetadata<unknown, unknown> & {
 
 export const patchesToAnnotations = (
     doc: Doc,
-    docBefore: Doc,
+    _docBefore: Doc,
     patches: A.Patch[]
 ) => {
     const changedCells = new Set<Uuid>();
     const annotations: Annotation<Uuid, Cell<unknown>>[] = [];
+
+    // hack: there seems to be a bug in Automerge where view doesn't return the correct version of the snapshot
+    // ... but it works if we look up the heads in the history
+    const headsBefore = A.getHeads(_docBefore);
+    const docBefore = A.getHistory(doc).find(
+        ({ change }) => change.hash === headsBefore[0]
+    )?.snapshot;
 
     patches.forEach((patch) => {
         if (patch.path[0] !== "notebook" || patch.path[1] !== "cells") {
@@ -37,6 +44,10 @@ export const patchesToAnnotations = (
         if (patch.path.length === 3) {
             switch (patch.action) {
                 case "del": {
+                    if (!docBefore) {
+                        return;
+                    }
+
                     const cell = docBefore.notebook.cells[cellIndex];
                     annotations.push({
                         type: "deleted",
@@ -68,7 +79,7 @@ export const patchesToAnnotations = (
                     return;
                 }
 
-                const before = docBefore.notebook.cells.find(
+                const before = docBefore?.notebook.cells.find(
                     (cell) => cell.id === after.id
                 );
 
