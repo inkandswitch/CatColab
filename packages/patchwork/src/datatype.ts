@@ -66,7 +66,6 @@ export const patchesToAnnotations = (
                     } as Annotation<Uuid, Cell<unknown>>);
                     return;
                 }
-                // todo: support changed
             }
         }
 

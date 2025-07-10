@@ -77,18 +77,11 @@ export function CellAnnotationsViewSolidComponent(
 ) {
     const api = { repo: props.repo };
 
-    onMount(() => {
-        console.log("=== ModelPane Mount (Same Import Paths) ===");
-    });
-
     const [liveModel] = createResource(
         () => props.docUrl,
         async (refId) => {
             try {
-                const result = await getLiveModel(refId, api, stdTheories);
-                console.log("=== Model Loaded Successfully ===");
-                console.log("Result:", result);
-                return result;
+                return await getLiveModel(refId, api, stdTheories);
             } catch (error) {
                 console.error("=== Model Loading Failed ===");
                 console.error("Error:", error);
@@ -114,8 +107,6 @@ export function CellAnnotationsViewSolidComponent(
                     when={liveModel() && !liveModel.loading && !liveModel.error}
                 >
                     {(_) => {
-                        console.log("liveModel", liveModel());
-
                         return (
                             <ApiContext.Provider value={api}>
                                 <TheoryLibraryContext.Provider
@@ -170,6 +161,17 @@ export function CellAnnotationsViewSolidComponent(
                                                                         }
                                                                     />
                                                                 </div>
+                                                            </div>
+                                                        );
+
+                                                    case "highlighted":
+                                                        return (
+                                                            <div class="annotation annotation-highlighted">
+                                                                <CellView
+                                                                    cell={
+                                                                        annotation.value
+                                                                    }
+                                                                />
                                                             </div>
                                                         );
                                                 }

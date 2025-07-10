@@ -51,7 +51,7 @@ export function AnalysisPaneComponent(props: AnalysisPaneProps) {
                         !liveAnalysis.error
                     }
                 >
-                    {(loadedAnalysis) => {
+                    {(_) => {
                         // Provide contexts using SAME import paths as ModelPane
                         return (
                             <ApiContext.Provider value={api}>

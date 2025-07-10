@@ -88,6 +88,7 @@ export function ModelDocumentEditor(props: { liveModel: LiveModelDocument }) {
 export function ModelPane(props: {
     liveModel: LiveModelDocument;
     annotations?: Accessor<Annotation<Uuid, Cell<unknown>>[]>;
+    onAddComment?: (cellId: Uuid) => void;
 }) {
     const theories = useContext(TheoryLibraryContext);
     invariant(theories, "Library of theories should be provided as context");
@@ -124,6 +125,7 @@ export function ModelPane(props: {
             <ModelNotebookEditor
                 liveModel={props.liveModel}
                 annotations={props.annotations}
+                onAddComment={props.onAddComment}
             />
         </div>
     );
@@ -134,6 +136,7 @@ export function ModelPane(props: {
 export function ModelNotebookEditor(props: {
     liveModel: LiveModelDocument;
     annotations?: Accessor<Annotation<Uuid, Cell<unknown>>[]>;
+    onAddComment?: (cellId: Uuid) => void;
 }) {
     const liveDoc = () => props.liveModel.liveDoc;
 
@@ -154,6 +157,7 @@ export function ModelNotebookEditor(props: {
                 cellLabel={judgmentLabel}
                 duplicateCell={duplicateModelJudgment}
                 annotations={props.annotations}
+                onAddComment={props.onAddComment}
             />
         </LiveModelContext.Provider>
     );

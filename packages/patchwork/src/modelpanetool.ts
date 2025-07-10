@@ -7,10 +7,12 @@ import { ModelPaneComponent } from "./modelpane.solid";
 import { Annotation } from "@patchwork/sdk/versionControl";
 import { Cell, Uuid } from "catlog-wasm";
 import { createSignal } from "../../frontend/node_modules/.pnpm/solid-js@1.9.2/node_modules/solid-js";
+import { useStaticCallback } from "@patchwork/sdk/hooks";
 
 export const Tool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
     docUrl,
     annotations,
+    setCommentState,
 }) => {
     const handle = useDocHandle<Doc>(docUrl, { suspense: true });
     const repo = useRepo();
@@ -22,6 +24,15 @@ export const Tool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
         () => createSignal<Annotation<Uuid, Cell<unknown>>[]>([]),
         []
     );
+
+    const onAddComment = useStaticCallback((cellId: Uuid) => {
+        console.log("add comment", cellId, setCommentState);
+
+        setCommentState?.({
+            type: "create",
+            target: [cellId],
+        });
+    });
 
     useEffect(() => {
         if (!handle || !repo) {
@@ -42,6 +53,7 @@ export const Tool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
                         docUrl,
                         repo,
                         annotations: getAnnotations,
+                        onAddComment,
                     }),
                 solidContainerRef.current
             );

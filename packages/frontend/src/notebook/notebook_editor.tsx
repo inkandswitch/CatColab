@@ -87,6 +87,7 @@ export function NotebookEditor<T>(props: {
     noShortcuts?: boolean;
 
     annotations?: Accessor<Annotation<Uuid, Cell<unknown>>[]>;
+    onAddComment?: (cellId: Uuid) => void;
 }) {
     const [activeCell, setActiveCell] = createSignal(
         props.notebook.cells.length > 0 ? 0 : -1
@@ -335,6 +336,9 @@ export function NotebookEditor<T>(props: {
                             },
                             hasFocused() {
                                 setActiveCell(i());
+                            },
+                            addComment() {
+                                props.onAddComment?.(cell.id);
                             },
                         };
 

@@ -32,6 +32,7 @@ import Copy from "lucide-solid/icons/copy";
 import GripVertical from "lucide-solid/icons/grip-vertical";
 import Plus from "lucide-solid/icons/plus";
 import Trash2 from "lucide-solid/icons/trash-2";
+import MessageCircle from "lucide-solid/icons/message-circle";
 
 import "./notebook_cell.css";
 import { Annotation } from "@patchwork/sdk/versionControl";
@@ -68,6 +69,9 @@ export type CellActions = {
 
     // Move this cell down, if possible.
     moveDown: () => void;
+
+    // Add a comment to this cell.
+    addComment: () => void;
 
     // The cell has received focus.
     hasFocused: () => void;
@@ -142,6 +146,11 @@ export function NotebookCell(props: {
             name: "Move Down",
             icon: <ArrowDown size={16} />,
             onComplete: props.actions.moveDown,
+        },
+        {
+            name: "Add Comment",
+            icon: <MessageCircle size={16} />,
+            onComplete: props.actions.addComment,
         },
     ];
 
