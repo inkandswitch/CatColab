@@ -129,7 +129,7 @@ export function CellAnnotationsViewSolidComponent(
                                                 switch (annotation.type) {
                                                     case "added":
                                                         return (
-                                                            <div class="annotation-added">
+                                                            <div class="annotation annotation-added">
                                                                 <CellView
                                                                     cell={
                                                                         annotation.added
@@ -139,7 +139,7 @@ export function CellAnnotationsViewSolidComponent(
                                                         );
                                                     case "deleted":
                                                         return (
-                                                            <div class="annotation-deleted">
+                                                            <div class="annotation annotation-deleted">
                                                                 <CellView
                                                                     cell={
                                                                         annotation.deleted
@@ -149,19 +149,21 @@ export function CellAnnotationsViewSolidComponent(
                                                         );
                                                     case "changed":
                                                         return (
-                                                            <div class="annotation">
+                                                            <div class="annotation-group">
                                                                 <div class="annotation-label">
                                                                     Before
                                                                 </div>
-                                                                <CellView
-                                                                    cell={
-                                                                        annotation.before
-                                                                    }
-                                                                />
+                                                                <div class="annotation">
+                                                                    <CellView
+                                                                        cell={
+                                                                            annotation.before
+                                                                        }
+                                                                    />
+                                                                </div>
                                                                 <div class="annotation-label">
                                                                     After
                                                                 </div>
-                                                                <div class="annotation-changed">
+                                                                <div class="annotation annotation-changed">
                                                                     <CellView
                                                                         cell={
                                                                             annotation.after

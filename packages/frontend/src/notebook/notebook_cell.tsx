@@ -175,7 +175,6 @@ export function NotebookCell(props: {
             class="cell"
             classList={{
                 "cell-added": props.annotation?.type === "added",
-                "cell-deleted": props.annotation?.type === "deleted",
                 "cell-changed": props.annotation?.type === "changed",
             }}
             onMouseEnter={showGutter}

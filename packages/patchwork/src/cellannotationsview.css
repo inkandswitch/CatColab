@@ -1,15 +1,28 @@
-.annotation-added {
+.annotation {
+  position: relative;
   width: fit-content;
+}
+
+.annotation::before {
+  content: "";
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  pointer-events: auto;
+}
+
+.annotation-added {
   background-color: #f0fdf4;
 }
 
 .annotation-changed {
-  width: fit-content;
   background-color: #fefce8;
 }
 
 .annotation-deleted {
-  width: fit-content;
   background-color:#ffe2e2;
 }
 
@@ -18,8 +31,9 @@
   color: darkgray;
 }
 
-.annotation {
+.annotation-group {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
+
