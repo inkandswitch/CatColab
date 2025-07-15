@@ -7,6 +7,7 @@ import {
 } from "@patchwork/sdk/versionControl";
 import { type DataTypeImplementation, initFrom } from "@patchwork/sdk";
 import { Cell, Uuid } from "catlog-wasm";
+import { AutomergeUrl, Repo } from "@automerge/automerge-repo";
 
 // SCHEMA
 
@@ -16,6 +17,10 @@ export type Doc = HasVersionControlMetadata<unknown, unknown> & {
     type: string;
     notebook: {
         cells: Cell<unknown>[];
+    };
+    analysisDocUrl?: AutomergeUrl;
+    analysisOf?: {
+        _id: AutomergeUrl;
     };
 };
 

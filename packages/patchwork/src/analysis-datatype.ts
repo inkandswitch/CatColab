@@ -1,5 +1,6 @@
 import { HasVersionControlMetadata } from "@patchwork/sdk/versionControl";
 import { type DataTypeImplementation, initFrom } from "@patchwork/sdk";
+import { AutomergeUrl } from "@automerge/automerge-repo";
 
 // SCHEMA
 
@@ -9,6 +10,10 @@ export type Doc = HasVersionControlMetadata<unknown, unknown> & {
     type: string;
     notebook: {
         cells: any[];
+    };
+    analysisType: "model";
+    analysisOf?: {
+        _id: AutomergeUrl;
     };
 };
 
@@ -31,6 +36,7 @@ export const init = (doc: Doc) => {
         name: "CatColab Analysis",
         theory: "simple-olog",
         type: "analysis",
+        analysisType: "model",
         notebook: {
             cells: [],
         },
