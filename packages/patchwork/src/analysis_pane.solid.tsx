@@ -1,25 +1,17 @@
-/** @jsxRuntime automatic */
-/** @jsxImportSource solid-js */
-/* eslint-disable react/no-unknown-property */
-
 import { createResource, Show } from "solid-js";
-import type { Repo } from "@automerge/automerge-repo";
 
+import {
+    getLiveAnalysis,
+    LiveAnalysisDocument,
+} from "../../frontend/src/analysis";
+import { AnalysisNotebookEditor } from "../../frontend/src/analysis/analysis_editor";
 import { ApiContext } from "../../frontend/src/api";
 import { stdTheories, TheoryLibraryContext } from "../../frontend/src/stdlib";
-import { getLiveAnalysis } from "../../frontend/src/analysis";
-import {
-    AnalysisDocumentEditor,
-    AnalysisNotebookEditor,
-} from "../../frontend/src/analysis/analysis_editor";
+import { SolidToolProps } from "./tools";
 
-interface AnalysisPaneProps {
-    docUrl: string;
-    repo: Repo;
-}
-
-export function AnalysisPaneComponent(props: AnalysisPaneProps) {
-    const api = { repo: props.repo };
+export function AnalysisPaneComponent(props: SolidToolProps) {
+    // Typescript gets confused because the patchwork and the frontend package both import "@automerge/automerge-repo" in their package.json
+    const api = { repo: props.repo as any };
     const [liveAnalysis] = createResource(
         () => props.docUrl,
         async (refId) => {
@@ -59,7 +51,9 @@ export function AnalysisPaneComponent(props: AnalysisPaneProps) {
                                     value={stdTheories}
                                 >
                                     <AnalysisNotebookEditor
-                                        liveAnalysis={liveAnalysis()}
+                                        liveAnalysis={
+                                            liveAnalysis() as LiveAnalysisDocument
+                                        }
                                     />
                                 </TheoryLibraryContext.Provider>
                             </ApiContext.Provider>

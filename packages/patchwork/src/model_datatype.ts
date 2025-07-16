@@ -11,7 +11,7 @@ import { AutomergeUrl } from "@automerge/automerge-repo";
 
 // SCHEMA
 
-export type ModelDoc = HasVersionControlMetadata<unknown, unknown> & {
+export type ModelDoc = HasVersionControlMetadata<Uuid, Cell<unknown>> & {
     name: string;
     theory: string;
     type: string;

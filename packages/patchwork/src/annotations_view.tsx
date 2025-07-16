@@ -1,34 +1,29 @@
+import { AutomergeUrl, Repo } from "@automerge/automerge-repo";
+import { useRepo } from "@automerge/automerge-repo-react-hooks";
+import { AnnotationsViewProps } from "@patchwork/sdk";
+import { Annotation } from "@patchwork/sdk/versionControl";
+import { Cell, Uuid } from "catlog-wasm";
 import React, { useEffect, useRef } from "react";
 import {
     createComponent,
     createResource,
     For,
     Match,
-    onMount,
     Show,
     Switch,
 } from "solid-js";
-import { getLiveModel } from "../../frontend/src/model/document";
-import { stdTheories, TheoryLibraryContext } from "../../frontend/src/stdlib";
-import { AnnotationsViewProps } from "@patchwork/sdk";
-import { Doc } from "./datatype";
-import { Cell, Uuid } from "catlog-wasm";
-import { useRepo } from "@automerge/automerge-repo-react-hooks";
-import { Annotation } from "@patchwork/sdk/versionControl";
-import { AutomergeUrl, DocHandle, Repo } from "@automerge/automerge-repo";
-import { ApiContext } from "../../frontend/src/api";
 import { render } from "solid-js/web";
-import { ModelCellEditor } from "../../frontend/src/model/model_editor";
-import {
-    CellActions,
-    FormalCell,
-    RichTextCellEditor,
-} from "../../frontend/src/notebook";
+import { ApiContext } from "../../frontend/src/api";
 import { LiveModelContext } from "../../frontend/src/model/context";
-import "./cellannotationsview.css";
+import { getLiveModel } from "../../frontend/src/model/document";
+import { ModelCellEditor } from "../../frontend/src/model/model_editor";
+import { CellActions, FormalCell } from "../../frontend/src/notebook";
+import { stdTheories, TheoryLibraryContext } from "../../frontend/src/stdlib";
+import "./annotations_view.css";
+import { ModelDoc } from "./model_datatype";
 
 export const CellAnnotationsView: React.FC<
-    AnnotationsViewProps<Doc, Uuid, Cell<unknown>>
+    AnnotationsViewProps<ModelDoc, Uuid, Cell<unknown>>
 > = ({ annotations, doc, handle }) => {
     const solidContainerRef = useRef<HTMLDivElement>(null);
     const solidDisposeRef = useRef<(() => void) | null>(null);
@@ -75,7 +70,8 @@ type CellAnnotationsViewSolidComponentProps = {
 export function CellAnnotationsViewSolidComponent(
     props: CellAnnotationsViewSolidComponentProps
 ) {
-    const api = { repo: props.repo };
+    // Typescript gets confused because the patchwork and the frontend package both import "@automerge/automerge-repo" in their package.json
+    const api = { repo: props.repo as any };
 
     const [liveModel] = createResource(
         () => props.docUrl,

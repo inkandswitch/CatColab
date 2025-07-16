@@ -10,7 +10,7 @@ export const plugins: Plugin<any>[] = [
         name: "CatColab Model",
         icon: "Zap",
         async load() {
-            const { dataType } = await import("./datatype");
+            const { dataType } = await import("./model_datatype");
             return dataType;
         },
     },
@@ -20,37 +20,54 @@ export const plugins: Plugin<any>[] = [
         name: "CatColab Analysis",
         icon: "BarChart3",
         async load() {
-            const { dataType } = await import("./analysis-datatype");
+            const { dataType } = await import("./analysis_datatype");
             return dataType;
         },
         unlisted: true,
     },
     {
         type: "patchwork:tool",
-        id: "catcolab-model",
-        name: "CatColab Model",
+        id: "catcolab-model-view",
+        name: "Model",
         icon: "Zap",
         supportedDataTypes: ["catcolab-model"],
         async load() {
-            const { Tool } = await import("./modelpanetool");
-            const { CellAnnotationsView } = await import(
-                "./cellannotationsview"
-            );
+            const { ModelTool } = await import("./tools");
+            const { CellAnnotationsView } = await import("./annotations_view");
             return {
-                EditorComponent: Tool,
+                EditorComponent: ModelTool,
                 AnnotationsViewComponent: CellAnnotationsView,
             };
         },
     },
     {
         type: "patchwork:tool",
-        id: "catcolab-analysis",
-        name: "CatColab Analysis",
-        icon: "BarChart3",
-        supportedDataTypes: ["catcolab-analysis"],
+        id: "catcolab-model-analysis-view",
+        name: "Analysis",
+        icon: "Zap",
+        supportedDataTypes: ["catcolab-model"],
         async load() {
-            const { Tool } = await import("./analysispanetool");
-            return { EditorComponent: Tool };
+            const { AnalysisTool } = await import("./tools");
+            const { CellAnnotationsView } = await import("./annotations_view");
+            return {
+                EditorComponent: AnalysisTool,
+                AnnotationsViewComponent: CellAnnotationsView,
+            };
+        },
+    },
+    {
+        type: "patchwork:tool",
+        id: "catcolab-model-side-by-side-view",
+        name: "Side by Side",
+        icon: "Zap",
+        supportedDataTypes: ["catcolab-model"],
+        async load() {
+            const { SideBySideTool } = await import("./tools");
+            const { CellAnnotationsView } = await import("./annotations_view");
+            return {
+                EditorComponent: SideBySideTool,
+                AnnotationsViewComponent: CellAnnotationsView,
+            };
         },
     },
     stockFlowAIPrompt,

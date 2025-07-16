@@ -19,7 +19,6 @@
         "noFallthroughCasesInSwitch": true
     },
     "include": ["src/**/*", "../src/**/*.ts", "../src/**/*.tsx"],
-    "exclude": ["src/**/*.solid.tsx", "src/**/*.solid.ts"],
     "ts-node": {
         "esm": true
     }
