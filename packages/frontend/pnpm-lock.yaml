@@ -215,8 +215,8 @@ packages:
   '@automerge/automerge@2.2.8':
     resolution: {integrity: sha512-kP6Z9lIkNeIGe/jhF8SUQAgUMwVjtXCBL0eZEgQGCoWvPNTPcg8fnQco28XkYBrfkkuqiEUAbdHhJmSp0y79ug==}
 
-  '@automerge/automerge@3.0.0-beta.4':
-    resolution: {integrity: sha512-eI3aGxd2RxhXJevza5LWi9JFb4pmgdWcijrADasJnhwkzXptAMGlhEaJEalesF5Z789DIDA+BJrXOuKNqOp5yg==}
+  '@automerge/automerge@3.0.0':
+    resolution: {integrity: sha512-vp/LrAzOyS4J+YmEKRjnCjCUqN6itzz9nKvPEcSLJuapZXfPmY72TYg0F05DVnLCvGe+sLuVAoVntJT6K0qutQ==}
 
   '@automerge/prosemirror@0.0.13':
     resolution: {integrity: sha512-TmRw9M1AfONjwHpWlGLnr8BRTXbXVRJtDHsOEhDsQWoflsKoBJO/rf/SP4wjgi2jYrlgUwTRaOny1p0AF9o27Q==}
@@ -3832,7 +3832,7 @@ snapshots:
     dependencies:
       uuid: 9.0.1
 
-  '@automerge/automerge@3.0.0-beta.4': {}
+  '@automerge/automerge@3.0.0': {}
 
   '@automerge/prosemirror@0.0.13':
     dependencies:
@@ -5102,7 +5102,7 @@ snapshots:
 
   '@patchwork/sdk@file:../../../patchwork/sdk':
     dependencies:
-      '@automerge/automerge': 3.0.0-beta.4
+      '@automerge/automerge': 3.0.0
       '@automerge/automerge-codemirror': 0.1.0
       '@automerge/automerge-repo': 2.0.8
       '@automerge/automerge-repo-react-hooks': 2.0.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1)

@@ -5,7 +5,7 @@ import {
     TextPatch,
     DecodedChangeWithMetadata,
 } from "@patchwork/sdk/versionControl";
-import { type DataTypeImplementation, initFrom } from "@patchwork/sdk";
+import { type DataTypeImplementation, DocLink, initFrom } from "@patchwork/sdk";
 import { Cell, Uuid } from "catlog-wasm";
 import { AutomergeUrl } from "@automerge/automerge-repo";
 
@@ -164,6 +164,18 @@ export const init = (doc: ModelDoc) => {
     });
 };
 
+const links = (doc: ModelDoc): DocLink[] => {
+    return doc.analysisDocUrl
+        ? [
+              {
+                  url: doc.analysisDocUrl,
+                  name: "Analysis",
+                  type: "catcolab-analysis",
+              },
+          ]
+        : [];
+};
+
 export const dataType: DataTypeImplementation<ModelDoc, Uuid, Cell<unknown>> = {
     init,
     getTitle,
@@ -173,4 +185,5 @@ export const dataType: DataTypeImplementation<ModelDoc, Uuid, Cell<unknown>> = {
     valueOfAnchor,
     patchesToAnnotations,
     includePatchInChangeGroup,
+    links,
 };

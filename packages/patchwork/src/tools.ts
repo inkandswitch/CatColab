@@ -3,7 +3,7 @@ import {
     useDocument,
     useRepo,
 } from "@automerge/automerge-repo-react-hooks";
-import { EditorProps } from "@patchwork/sdk";
+import { DocPath, EditorProps } from "@patchwork/sdk";
 import { ModelDoc } from "./model_datatype";
 import React, { useRef, useEffect, useMemo } from "react";
 import { createComponent, render } from "solid-js/web";
@@ -20,6 +20,7 @@ import {
     AnalysisDoc as AnalysisDoc,
 } from "./analysis_datatype";
 import "./tools.css";
+import { useBranchScopeAndActiveBranchInfo } from "@patchwork/sdk/versionControl";
 
 export type SolidToolProps = {
     docUrl: string;
@@ -30,11 +31,13 @@ export type SolidToolProps = {
 
 export const ModelTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
     docUrl,
+    docPath,
     annotations,
     setCommentState,
 }) => {
     return React.createElement(Tool, {
         docUrl,
+        docPath,
         annotations,
         setCommentState,
         solidComponent: ModelPaneComponent,
@@ -43,10 +46,33 @@ export const ModelTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
 
 export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
     docUrl,
+    docPath,
 }) => {
     const modelDocHandle = useDocHandle<ModelDoc>(docUrl, { suspense: true });
     const [modelDoc] = useDocument<ModelDoc>(docUrl, { suspense: true });
     const repo = useRepo();
+
+    const analysisDocPath = useMemo<DocPath | undefined>(
+        () =>
+            modelDoc.analysisDocUrl
+                ? [
+                      ...docPath,
+                      {
+                          name: "analysis",
+                          type: "analysis",
+                          url: modelDoc.analysisDocUrl,
+                      },
+                  ]
+                : undefined,
+        [docPath, modelDoc]
+    );
+
+    const branchState = useBranchScopeAndActiveBranchInfo(analysisDocPath);
+    const branchScopeAndActiveBranchInfo =
+        branchState.status === "ready" ? branchState.data : undefined;
+    const analysisDocUrl = !branchScopeAndActiveBranchInfo
+        ? modelDoc.analysisDocUrl
+        : branchScopeAndActiveBranchInfo?.cloneOrMainOm?.url;
 
     // we can't create the analysis document in the init funciton of the model document because
     // the analysis needs a reference to the model document, and the model document doesn't exist at that point
@@ -69,12 +95,13 @@ export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
         });
     }, [modelDoc.analysisDocUrl, modelDocHandle]);
 
-    if (!modelDoc.analysisDocUrl) {
+    if (!analysisDocUrl) {
         return null;
     }
 
     return React.createElement(Tool, {
-        docUrl: modelDoc.analysisDocUrl,
+        docUrl: analysisDocUrl,
+        docPath,
         annotations: [],
         setCommentState: () => {},
         solidComponent: AnalysisPaneComponent,
@@ -102,6 +129,7 @@ const Tool: React.FC<
     }
 > = ({
     docUrl,
+    docPath,
     annotations,
     setCommentState,
     solidComponent = ModelPaneComponent,
