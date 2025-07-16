@@ -1,26 +1,25 @@
+import { DocHandle, Repo } from "@automerge/automerge-repo";
 import {
     useDocHandle,
     useDocument,
     useRepo,
 } from "@automerge/automerge-repo-react-hooks";
 import { DocPath, EditorProps } from "@patchwork/sdk";
-import { ModelDoc } from "./model_datatype";
-import React, { useRef, useEffect, useMemo } from "react";
-import { createComponent, render } from "solid-js/web";
-import { ModelPaneComponent } from "./model_pane.solid";
-import { Annotation } from "@patchwork/sdk/versionControl";
-import { Cell, Uuid } from "catlog-wasm";
-import { createSignal } from "../../frontend/node_modules/.pnpm/solid-js@1.9.2/node_modules/solid-js";
 import { useStaticCallback } from "@patchwork/sdk/hooks";
-import { Repo } from "@automerge/automerge-repo";
-import { JSX } from "solid-js";
-import { AnalysisPaneComponent } from "./analysis_pane.solid";
 import {
-    init as initAnalysis,
-    AnalysisDoc as AnalysisDoc,
-} from "./analysis_datatype";
+    Annotation,
+    useBranchScopeAndActiveBranchInfo,
+} from "@patchwork/sdk/versionControl";
+import { Cell, Uuid } from "catlog-wasm";
+import React, { useEffect, useMemo, useRef } from "react";
+import { JSX } from "solid-js";
+import { createComponent, render } from "solid-js/web";
+import { createSignal } from "../../frontend/node_modules/.pnpm/solid-js@1.9.2/node_modules/solid-js";
+import { AnalysisDoc } from "./analysis_datatype";
+import { AnalysisPaneComponent } from "./analysis_pane.solid";
+import { ModelDoc } from "./model_datatype";
+import { ModelPaneComponent } from "./model_pane.solid";
 import "./tools.css";
-import { useBranchScopeAndActiveBranchInfo } from "@patchwork/sdk/versionControl";
 
 export type SolidToolProps = {
     docUrl: string;
@@ -48,9 +47,7 @@ export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
     docUrl,
     docPath,
 }) => {
-    const modelDocHandle = useDocHandle<ModelDoc>(docUrl, { suspense: true });
     const [modelDoc] = useDocument<ModelDoc>(docUrl, { suspense: true });
-    const repo = useRepo();
 
     const analysisDocPath = useMemo<DocPath | undefined>(
         () =>
@@ -67,33 +64,51 @@ export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
         [docPath, modelDoc]
     );
 
-    const branchState = useBranchScopeAndActiveBranchInfo(analysisDocPath);
-    const branchScopeAndActiveBranchInfo =
-        branchState.status === "ready" ? branchState.data : undefined;
-    const analysisDocUrl = !branchScopeAndActiveBranchInfo
-        ? modelDoc.analysisDocUrl
-        : branchScopeAndActiveBranchInfo?.cloneOrMainOm?.url;
+    const modelBranchState = useBranchScopeAndActiveBranchInfo(docPath);
+    const modelBranchScopeAndActiveBranchInfo =
+        modelBranchState.status === "ready" ? modelBranchState.data : undefined;
+    const modelDocUrl = !modelBranchScopeAndActiveBranchInfo
+        ? docUrl
+        : modelBranchScopeAndActiveBranchInfo?.cloneOrMainOm?.url;
 
-    // we can't create the analysis document in the init funciton of the model document because
-    // the analysis needs a reference to the model document, and the model document doesn't exist at that point
+    const analysisBranchState =
+        useBranchScopeAndActiveBranchInfo(analysisDocPath);
+    const analysisBranchScopeAndActiveBranchInfo =
+        analysisBranchState.status === "ready"
+            ? analysisBranchState.data
+            : undefined;
+
+    const analysisDocHandle = analysisBranchScopeAndActiveBranchInfo
+        ?.cloneOrMainOm.handle as unknown as DocHandle<AnalysisDoc>;
+    const analysisDocUrl = !analysisBranchScopeAndActiveBranchInfo
+        ? modelDoc.analysisDocUrl
+        : analysisBranchScopeAndActiveBranchInfo?.cloneOrMainOm?.url;
+
+    // hack: update the analysis document to point to the current model document
+    //
+    // Why do we need to do this?
+    //
+    // when we create a branch of a model document this creates a copy of the analysis document
+    // so both documents are branched together
+    //
+    // the problem is that the forked analysis document still points to the original model document
+    // the correct solution would be to resolve the url to point to the forked model document
+    // but that would involve pushing the resolve logic down into the frontend package
+    // since the whole branch scope resolution is very hacky right now I want to avoid that
     useEffect(() => {
-        if (modelDoc.analysisDocUrl) {
+        if (
+            !modelDoc ||
+            !analysisDocHandle ||
+            analysisDocHandle.doc()?.analysisOf?._id === modelDocUrl
+        ) {
             return;
         }
-        const analysisDocHandle = repo.create<AnalysisDoc>();
-
         analysisDocHandle.change((doc) => {
-            initAnalysis(doc);
             doc.analysisOf = {
-                _id: docUrl,
+                _id: modelDocUrl,
             };
-            doc.analysisType = "model";
         });
-
-        modelDocHandle.change((doc) => {
-            doc.analysisDocUrl = analysisDocHandle.url;
-        });
-    }, [modelDoc.analysisDocUrl, modelDocHandle]);
+    }, [analysisDocUrl, modelDoc, analysisDocHandle]);
 
     if (!analysisDocUrl) {
         return null;

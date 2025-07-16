@@ -7,7 +7,8 @@ import {
 } from "@patchwork/sdk/versionControl";
 import { type DataTypeImplementation, DocLink, initFrom } from "@patchwork/sdk";
 import { Cell, Uuid } from "catlog-wasm";
-import { AutomergeUrl } from "@automerge/automerge-repo";
+import { AutomergeUrl, Repo } from "@automerge/automerge-repo";
+import { AnalysisDoc, init as initAnalysis } from "./analysis_datatype";
 
 // SCHEMA
 
@@ -18,7 +19,7 @@ export type ModelDoc = HasVersionControlMetadata<Uuid, Cell<unknown>> & {
     notebook: {
         cells: Cell<unknown>[];
     };
-    analysisDocUrl?: AutomergeUrl;
+    analysisDocUrl: AutomergeUrl;
 };
 
 export const patchesToAnnotations = (
@@ -153,7 +154,13 @@ const getTitle = async (doc: ModelDoc) => {
     return doc.name || "CatColab Model";
 };
 
-export const init = (doc: ModelDoc) => {
+export const init = (doc: ModelDoc, repo: Repo) => {
+    const analysisDocHandle = repo.create<AnalysisDoc>();
+
+    analysisDocHandle.change((doc) => {
+        initAnalysis(doc);
+    });
+
     initFrom(doc, {
         name: "CatColab Model",
         theory: "simple-olog",
@@ -161,6 +168,7 @@ export const init = (doc: ModelDoc) => {
         notebook: {
             cells: [],
         },
+        analysisDocUrl: analysisDocHandle.url,
     });
 };
 
