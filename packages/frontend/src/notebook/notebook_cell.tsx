@@ -16,7 +16,7 @@ import {
     onCleanup,
 } from "solid-js";
 
-import type { Cell, Uuid } from "catlog-wasm";
+import type { Uuid } from "catlog-wasm";
 import {
     type Completion,
     Completions,
@@ -35,7 +35,6 @@ import Trash2 from "lucide-solid/icons/trash-2";
 import MessageCircle from "lucide-solid/icons/message-circle";
 
 import "./notebook_cell.css";
-import { Annotation } from "@patchwork/sdk/versionControl";
 
 /** Actions invokable *within* a cell but affecting the larger notebook state.
 
@@ -69,9 +68,6 @@ export type CellActions = {
 
     // Move this cell down, if possible.
     moveDown: () => void;
-
-    // Add a comment to this cell.
-    addComment: () => void;
 
     // The cell has received focus.
     hasFocused: () => void;
@@ -111,7 +107,7 @@ export function NotebookCell(props: {
     actions: CellActions;
     children: JSX.Element;
     tag?: string;
-    annotation?: Annotation<Uuid, Cell<unknown>>;
+    diffAnnotationType?: "added" | "changed" | "deleted";
 }) {
     let rootRef!: HTMLDivElement;
     let handleRef!: HTMLButtonElement;
@@ -150,7 +146,7 @@ export function NotebookCell(props: {
         {
             name: "Add Comment",
             icon: <MessageCircle size={16} />,
-            onComplete: props.actions.addComment,
+            onComplete: () => console.log("add comment"),
         },
     ];
 
@@ -183,8 +179,8 @@ export function NotebookCell(props: {
         <div
             class="cell"
             classList={{
-                "cell-added": props.annotation?.type === "added",
-                "cell-changed": props.annotation?.type === "changed",
+                "cell-added": props.diffAnnotationType === "added",
+                "cell-changed": props.diffAnnotationType === "changed",
             }}
             onMouseEnter={showGutter}
             onMouseLeave={hideGutter}

@@ -5,15 +5,8 @@ import {
     useRepo,
 } from "@automerge/automerge-repo-react-hooks";
 import { DocPath, EditorProps } from "@patchwork/sdk";
-import { useStaticCallback } from "@patchwork/sdk/hooks";
-import {
-    Annotation,
-    useBranchScopeAndActiveBranchInfo,
-} from "@patchwork/sdk/versionControl";
-import {
-    useAnnotationsContext,
-    useAnnotationsOfDoc,
-} from "@patchwork/sdk/annotations";
+import { useAllAnnotations } from "@patchwork/sdk/annotations";
+import { useBranchScopeAndActiveBranchInfo } from "@patchwork/sdk/versionControl";
 import { Cell, Uuid } from "catlog-wasm";
 import React, { useEffect, useMemo, useRef } from "react";
 import { JSX } from "solid-js";
@@ -28,20 +21,17 @@ import "./tools.css";
 export type SolidToolProps = {
     docUrl: string;
     repo: Repo;
-    annotations: () => Annotation<Uuid, Cell<unknown>>[];
-    onAddComment: (cellId: Uuid) => void;
+    annotationsContextValue: () => ReturnType<typeof useAllAnnotations>;
 };
 
 export const ModelTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
     docUrl,
     docPath,
-    annotations,
     setCommentState,
 }) => {
     return React.createElement(Tool, {
         docUrl,
         docPath,
-        annotations,
         setCommentState,
         solidComponent: ModelPaneComponent,
     });
@@ -146,32 +136,19 @@ const Tool: React.FC<
     EditorProps<Uuid, Cell<unknown>> & {
         solidComponent?: (props: SolidToolProps) => JSX.Element;
     }
-> = ({
-    docUrl,
-    docPath,
-    annotations,
-    setCommentState,
-    solidComponent = ModelPaneComponent,
-}) => {
+> = ({ docUrl, solidComponent = ModelPaneComponent }) => {
     const handle = useDocHandle<ModelDoc>(docUrl, { suspense: true });
     const repo = useRepo();
+
+    const allAnnotations = useAllAnnotations();
 
     const solidContainerRef = useRef<HTMLDivElement>(null);
     const solidDisposeRef = useRef<(() => void) | null>(null);
 
-    const [getAnnotations, setAnnotations] = useMemo(
-        () => createSignal<Annotation<Uuid, Cell<unknown>>[]>([]),
+    const [getAnnotationsContextValue, setAnnotationsContextValue] = useMemo(
+        () => createSignal<ReturnType<typeof useAllAnnotations>>([]),
         []
     );
-
-    const onAddComment = useStaticCallback((cellId: Uuid) => {
-        console.log("add comment", cellId, setCommentState);
-
-        setCommentState?.({
-            type: "create",
-            target: [cellId],
-        });
-    });
 
     useEffect(() => {
         if (!handle || !repo) {
@@ -191,8 +168,7 @@ const Tool: React.FC<
                     createComponent(solidComponent, {
                         docUrl,
                         repo,
-                        annotations: getAnnotations,
-                        onAddComment,
+                        annotationsContextValue: getAnnotationsContextValue,
                     }),
                 solidContainerRef.current
             );
@@ -208,8 +184,8 @@ const Tool: React.FC<
     }, [docUrl, handle, solidComponent]);
 
     useEffect(() => {
-        setAnnotations(annotations || []);
-    }, [annotations]);
+        setAnnotationsContextValue(allAnnotations || []);
+    }, [allAnnotations]);
 
     if (!handle) {
         return null;

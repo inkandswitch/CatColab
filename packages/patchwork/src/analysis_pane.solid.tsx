@@ -8,6 +8,7 @@ import { AnalysisNotebookEditor } from "../../frontend/src/analysis/analysis_edi
 import { ApiContext } from "../../frontend/src/api";
 import { stdTheories, TheoryLibraryContext } from "../../frontend/src/stdlib";
 import { SolidToolProps } from "./tools";
+import { AnnotationsContext } from "./annotations_solid";
 
 export function AnalysisPaneComponent(props: SolidToolProps) {
     // Typescript gets confused because the patchwork and the frontend package both import "@automerge/automerge-repo" in their package.json
@@ -46,17 +47,21 @@ export function AnalysisPaneComponent(props: SolidToolProps) {
                     {(_) => {
                         // Provide contexts using SAME import paths as ModelPane
                         return (
-                            <ApiContext.Provider value={api}>
-                                <TheoryLibraryContext.Provider
-                                    value={stdTheories}
-                                >
-                                    <AnalysisNotebookEditor
-                                        liveAnalysis={
-                                            liveAnalysis() as LiveAnalysisDocument
-                                        }
-                                    />
-                                </TheoryLibraryContext.Provider>
-                            </ApiContext.Provider>
+                            <AnnotationsContext.Provider
+                                value={props.annotationsContextValue()}
+                            >
+                                <ApiContext.Provider value={api}>
+                                    <TheoryLibraryContext.Provider
+                                        value={stdTheories}
+                                    >
+                                        <AnalysisNotebookEditor
+                                            liveAnalysis={
+                                                liveAnalysis() as LiveAnalysisDocument
+                                            }
+                                        />
+                                    </TheoryLibraryContext.Provider>
+                                </ApiContext.Provider>
+                            </AnnotationsContext.Provider>
                         );
                     }}
                 </Show>

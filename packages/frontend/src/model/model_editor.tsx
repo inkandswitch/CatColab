@@ -85,11 +85,7 @@ export function ModelDocumentEditor(props: { liveModel: LiveModelDocument }) {
 
 /** Pane containing a model notebook plus a header with the title and theory.
  */
-export function ModelPane(props: {
-    liveModel: LiveModelDocument;
-    annotations?: Accessor<Annotation<Uuid, Cell<unknown>>[]>;
-    onAddComment?: (cellId: Uuid) => void;
-}) {
+export function ModelPane(props: { liveModel: LiveModelDocument }) {
     const theories = useContext(TheoryLibraryContext);
     invariant(theories, "Library of theories should be provided as context");
 
@@ -122,11 +118,7 @@ export function ModelPane(props: {
                     )}
                 />
             </div>
-            <ModelNotebookEditor
-                liveModel={props.liveModel}
-                annotations={props.annotations}
-                onAddComment={props.onAddComment}
-            />
+            <ModelNotebookEditor liveModel={props.liveModel} />
         </div>
     );
 }

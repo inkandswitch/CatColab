@@ -5,7 +5,6 @@ import type { DocHandle, Prop } from "@automerge/automerge-repo";
 import { type KbdKey, createShortcut } from "@solid-primitives/keyboard";
 import ListPlus from "lucide-solid/icons/list-plus";
 import {
-    Accessor,
     type Component,
     For,
     Match,
@@ -16,7 +15,7 @@ import {
     onCleanup,
 } from "solid-js";
 
-import type { Cell, Notebook, Uuid } from "catlog-wasm";
+import type { Cell, Notebook } from "catlog-wasm";
 import { type Completion, IconButton } from "../components";
 import { deepCopyJSON } from "../util/deepcopy";
 import {
@@ -33,9 +32,13 @@ import {
     newRichTextCell,
     newStemCell,
 } from "./types";
-import { Annotation } from "@patchwork/sdk/versionControl";
 
 import "./notebook_editor.css";
+import { getDiffAnnotationTypeAtPointer } from "@patchwork/sdk/annotations";
+import { useAnnotationsOfDoc } from "../../../patchwork/src/annotations_solid";
+import { CellPointer } from "../../../patchwork/src/annotations";
+import { ModelDoc } from "../../../patchwork/src/model_datatype";
+import { AnalysisDoc } from "../../../patchwork/src/analysis-datatype";
 
 /** Constructor for a cell in a notebook.
 
@@ -85,9 +88,6 @@ export function NotebookEditor<T>(props: {
 
     // FIXME: Remove this option once we fix focus management.
     noShortcuts?: boolean;
-
-    annotations?: Accessor<Annotation<Uuid, Cell<unknown>>[]>;
-    onAddComment?: (cellId: Uuid) => void;
 }) {
     const [activeCell, setActiveCell] = createSignal(
         props.notebook.cells.length > 0 ? 0 : -1
@@ -238,6 +238,8 @@ export function NotebookEditor<T>(props: {
         onCleanup(cleanup);
     });
 
+    const annotations = useAnnotationsOfDoc(props.handle.url);
+
     return (
         <div class="notebook">
             <Show when={props.notebook.cells.length === 0}>
@@ -253,15 +255,16 @@ export function NotebookEditor<T>(props: {
             <ul class="notebook-cells">
                 <For each={props.notebook.cells}>
                     {(cell, i) => {
-                        // Create a derived signal that will track annotations() changes
-                        const cellAnnotation = () =>
-                            props
-                                .annotations?.()
-                                ?.find(
-                                    (annotation) =>
-                                        annotation.anchor === cell.id
-                                );
+                        const cellPointer = new CellPointer(
+                            props.handle.doc() as ModelDoc | AnalysisDoc,
+                            cell.id
+                        );
 
+                        const diffAnnotationType = () =>
+                            getDiffAnnotationTypeAtPointer(
+                                cellPointer,
+                                annotations
+                            );
                         const isActive = () => activeCell() === i();
                         const cellActions: CellActions = {
                             activateAbove() {
@@ -337,9 +340,6 @@ export function NotebookEditor<T>(props: {
                             hasFocused() {
                                 setActiveCell(i());
                             },
-                            addComment() {
-                                props.onAddComment?.(cell.id);
-                            },
                         };
 
                         return (
@@ -352,7 +352,7 @@ export function NotebookEditor<T>(props: {
                                             ? props.cellLabel?.(cell.content)
                                             : undefined
                                     }
-                                    annotation={cellAnnotation()}
+                                    diffAnnotationType={diffAnnotationType()}
                                 >
                                     <Switch>
                                         <Match when={cell.tag === "rich-text"}>

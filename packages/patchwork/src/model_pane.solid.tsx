@@ -5,6 +5,7 @@ import { getLiveModel } from "../../frontend/src/model/document";
 import { ModelPane } from "../../frontend/src/model/model_editor";
 import { stdTheories, TheoryLibraryContext } from "../../frontend/src/stdlib";
 import { SolidToolProps } from "./tools";
+import { AnnotationsContext } from "./annotations_solid";
 
 export function ModelPaneComponent(props: SolidToolProps) {
     // Typescript gets confused because the patchwork and the frontend package both import "@automerge/automerge-repo" in their package.json
@@ -45,17 +46,17 @@ export function ModelPaneComponent(props: SolidToolProps) {
                 <Show when={!isLoading()}>
                     {(_) => {
                         return (
-                            <ApiContext.Provider value={api}>
-                                <TheoryLibraryContext.Provider
-                                    value={stdTheories}
-                                >
-                                    <ModelPane
-                                        liveModel={liveModel()!}
-                                        annotations={props.annotations}
-                                        onAddComment={props.onAddComment}
-                                    />
-                                </TheoryLibraryContext.Provider>
-                            </ApiContext.Provider>
+                            <AnnotationsContext.Provider
+                                value={props.annotationsContextValue()}
+                            >
+                                <ApiContext.Provider value={api}>
+                                    <TheoryLibraryContext.Provider
+                                        value={stdTheories}
+                                    >
+                                        <ModelPane liveModel={liveModel()!} />
+                                    </TheoryLibraryContext.Provider>
+                                </ApiContext.Provider>
+                            </AnnotationsContext.Provider>
                         );
                     }}
                 </Show>
