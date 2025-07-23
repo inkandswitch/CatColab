@@ -148,8 +148,6 @@ export function ModelNotebookEditor(props: {
                 cellConstructors={cellConstructors()}
                 cellLabel={judgmentLabel}
                 duplicateCell={duplicateModelJudgment}
-                annotations={props.annotations}
-                onAddComment={props.onAddComment}
             />
         </LiveModelContext.Provider>
     );

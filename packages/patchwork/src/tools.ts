@@ -26,12 +26,10 @@ export type SolidToolProps = {
 
 export const ModelTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
     docUrl,
-    docPath,
     setCommentState,
 }) => {
     return React.createElement(Tool, {
         docUrl,
-        docPath,
         setCommentState,
         solidComponent: ModelPaneComponent,
     });
@@ -39,44 +37,31 @@ export const ModelTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
 
 export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
     docUrl,
-    docPath,
 }) => {
     const [modelDoc] = useDocument<ModelDoc>(docUrl, { suspense: true });
 
-    const analysisDocPath = useMemo<DocPath | undefined>(
-        () =>
-            modelDoc.analysisDocUrl
-                ? [
-                      ...docPath,
-                      {
-                          name: "analysis",
-                          type: "analysis",
-                          url: modelDoc.analysisDocUrl,
-                      },
-                  ]
-                : undefined,
-        [docPath, modelDoc]
+    const docUrlsWithAnnotations = useAllAnnotations();
+
+    const analysisDocUrl = modelDoc.analysisDocUrl;
+
+    const resolvedAnalysisDocUrl = useMemo(() => {
+        const annotation = docUrlsWithAnnotations.find(
+            (a) => a.originalUrl === analysisDocUrl
+        );
+        return annotation?.cloneUrl ?? analysisDocUrl;
+    }, [modelDoc.analysisDocUrl, docUrlsWithAnnotations]);
+
+    const resolvedModelDocUrl = useMemo(() => {
+        const annotation = docUrlsWithAnnotations.find(
+            (a) => a.originalUrl === docUrl
+        );
+        return annotation?.cloneUrl ?? docUrl;
+    }, [docUrl, docUrlsWithAnnotations]);
+
+    const analysisDocHandle = useDocHandle<AnalysisDoc>(
+        resolvedAnalysisDocUrl,
+        { suspense: true }
     );
-
-    const modelBranchState = useBranchScopeAndActiveBranchInfo(docPath);
-    const modelBranchScopeAndActiveBranchInfo =
-        modelBranchState.status === "ready" ? modelBranchState.data : undefined;
-    const modelDocUrl = !modelBranchScopeAndActiveBranchInfo
-        ? docUrl
-        : modelBranchScopeAndActiveBranchInfo?.cloneOrMainOm?.url;
-
-    const analysisBranchState =
-        useBranchScopeAndActiveBranchInfo(analysisDocPath);
-    const analysisBranchScopeAndActiveBranchInfo =
-        analysisBranchState.status === "ready"
-            ? analysisBranchState.data
-            : undefined;
-
-    const analysisDocHandle = analysisBranchScopeAndActiveBranchInfo
-        ?.cloneOrMainOm.handle as unknown as DocHandle<AnalysisDoc>;
-    const analysisDocUrl = !analysisBranchScopeAndActiveBranchInfo
-        ? modelDoc.analysisDocUrl
-        : analysisBranchScopeAndActiveBranchInfo?.cloneOrMainOm?.url;
 
     // hack: update the analysis document to point to the current model document
     //
@@ -93,13 +78,13 @@ export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
         if (
             !modelDoc ||
             !analysisDocHandle ||
-            analysisDocHandle.doc()?.analysisOf?._id === modelDocUrl
+            analysisDocHandle.doc()?.analysisOf?._id === resolvedModelDocUrl
         ) {
             return;
         }
         analysisDocHandle.change((doc) => {
             doc.analysisOf = {
-                _id: modelDocUrl,
+                _id: resolvedModelDocUrl,
             };
         });
     }, [analysisDocUrl, modelDoc, analysisDocHandle]);
@@ -110,7 +95,6 @@ export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
 
     return React.createElement(Tool, {
         docUrl: analysisDocUrl,
-        docPath,
         annotations: [],
         setCommentState: () => {},
         solidComponent: AnalysisPaneComponent,
