@@ -1,5 +1,6 @@
 import { type Plugin } from "@patchwork/sdk/plugins";
 import { stockFlowAIPrompt } from "./ai-prompt";
+import { LoadableAnnotationPlugin } from "@patchwork/sdk/annotations";
 
 import "./index.css";
 
@@ -71,4 +72,24 @@ export const plugins: Plugin<any>[] = [
         },
     },
     stockFlowAIPrompt,
+    {
+        type: "patchwork:annotations",
+        name: "Model Annotations",
+        id: "model-annotations",
+        supportedDataTypes: ["catcolab-model"],
+        async load() {
+            const { ModelAnnotationsPlugin } = await import("./annotations");
+            return ModelAnnotationsPlugin;
+        },
+    } as LoadableAnnotationPlugin,
+    {
+        type: "patchwork:annotations",
+        name: "Analysis Annotations",
+        id: "analysis-annotations",
+        supportedDataTypes: ["catcolab-analysis"],
+        async load() {
+            const { AnalysisAnnotationsPlugin } = await import("./annotations");
+            return AnalysisAnnotationsPlugin;
+        },
+    } as LoadableAnnotationPlugin,
 ];

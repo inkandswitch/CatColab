@@ -10,6 +10,10 @@ import {
     Annotation,
     useBranchScopeAndActiveBranchInfo,
 } from "@patchwork/sdk/versionControl";
+import {
+    useAnnotationsContext,
+    useAnnotationsOfDoc,
+} from "@patchwork/sdk/annotations";
 import { Cell, Uuid } from "catlog-wasm";
 import React, { useEffect, useMemo, useRef } from "react";
 import { JSX } from "solid-js";
