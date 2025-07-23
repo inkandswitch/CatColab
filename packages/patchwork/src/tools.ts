@@ -1,0 +1,217 @@
+import { DocHandle, Repo } from "@automerge/automerge-repo";
+import {
+    useDocHandle,
+    useDocument,
+    useRepo,
+} from "@automerge/automerge-repo-react-hooks";
+import { DocPath, EditorProps } from "@patchwork/sdk";
+import { useStaticCallback } from "@patchwork/sdk/hooks";
+import {
+    Annotation,
+    useBranchScopeAndActiveBranchInfo,
+} from "@patchwork/sdk/versionControl";
+import { Cell, Uuid } from "catlog-wasm";
+import React, { useEffect, useMemo, useRef } from "react";
+import { JSX } from "solid-js";
+import { createComponent, render } from "solid-js/web";
+import { createSignal } from "../../frontend/node_modules/.pnpm/solid-js@1.9.2/node_modules/solid-js";
+import { AnalysisDoc } from "./analysis_datatype";
+import { AnalysisPaneComponent } from "./analysis_pane.solid";
+import { ModelDoc } from "./model_datatype";
+import { ModelPaneComponent } from "./model_pane.solid";
+import "./tools.css";
+
+export type SolidToolProps = {
+    docUrl: string;
+    repo: Repo;
+    annotations: () => Annotation<Uuid, Cell<unknown>>[];
+    onAddComment: (cellId: Uuid) => void;
+};
+
+export const ModelTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
+    docUrl,
+    docPath,
+    annotations,
+    setCommentState,
+}) => {
+    return React.createElement(Tool, {
+        docUrl,
+        docPath,
+        annotations,
+        setCommentState,
+        solidComponent: ModelPaneComponent,
+    });
+};
+
+export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
+    docUrl,
+    docPath,
+}) => {
+    const [modelDoc] = useDocument<ModelDoc>(docUrl, { suspense: true });
+
+    const analysisDocPath = useMemo<DocPath | undefined>(
+        () =>
+            modelDoc.analysisDocUrl
+                ? [
+                      ...docPath,
+                      {
+                          name: "analysis",
+                          type: "analysis",
+                          url: modelDoc.analysisDocUrl,
+                      },
+                  ]
+                : undefined,
+        [docPath, modelDoc]
+    );
+
+    const modelBranchState = useBranchScopeAndActiveBranchInfo(docPath);
+    const modelBranchScopeAndActiveBranchInfo =
+        modelBranchState.status === "ready" ? modelBranchState.data : undefined;
+    const modelDocUrl = !modelBranchScopeAndActiveBranchInfo
+        ? docUrl
+        : modelBranchScopeAndActiveBranchInfo?.cloneOrMainOm?.url;
+
+    const analysisBranchState =
+        useBranchScopeAndActiveBranchInfo(analysisDocPath);
+    const analysisBranchScopeAndActiveBranchInfo =
+        analysisBranchState.status === "ready"
+            ? analysisBranchState.data
+            : undefined;
+
+    const analysisDocHandle = analysisBranchScopeAndActiveBranchInfo
+        ?.cloneOrMainOm.handle as unknown as DocHandle<AnalysisDoc>;
+    const analysisDocUrl = !analysisBranchScopeAndActiveBranchInfo
+        ? modelDoc.analysisDocUrl
+        : analysisBranchScopeAndActiveBranchInfo?.cloneOrMainOm?.url;
+
+    // hack: update the analysis document to point to the current model document
+    //
+    // Why do we need to do this?
+    //
+    // when we create a branch of a model document this creates a copy of the analysis document
+    // so both documents are branched together
+    //
+    // the problem is that the forked analysis document still points to the original model document
+    // the correct solution would be to resolve the url to point to the forked model document
+    // but that would involve pushing the resolve logic down into the frontend package
+    // since the whole branch scope resolution is very hacky right now I want to avoid that
+    useEffect(() => {
+        if (
+            !modelDoc ||
+            !analysisDocHandle ||
+            analysisDocHandle.doc()?.analysisOf?._id === modelDocUrl
+        ) {
+            return;
+        }
+        analysisDocHandle.change((doc) => {
+            doc.analysisOf = {
+                _id: modelDocUrl,
+            };
+        });
+    }, [analysisDocUrl, modelDoc, analysisDocHandle]);
+
+    if (!analysisDocUrl) {
+        return null;
+    }
+
+    return React.createElement(Tool, {
+        docUrl: analysisDocUrl,
+        docPath,
+        annotations: [],
+        setCommentState: () => {},
+        solidComponent: AnalysisPaneComponent,
+    });
+};
+
+export const SideBySideTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = (
+    props
+) => {
+    return React.createElement("div", { className: "split-view-container" }, [
+        React.createElement("div", { className: "split-view-pane" }, [
+            React.createElement(ModelTool, props),
+        ]),
+        React.createElement("div", { className: "split-view-divider" }),
+        React.createElement("div", { className: "split-view-pane" }, [
+            React.createElement("h1", {}, "Analysis"),
+            React.createElement(AnalysisTool, props),
+        ]),
+    ]);
+};
+
+const Tool: React.FC<
+    EditorProps<Uuid, Cell<unknown>> & {
+        solidComponent?: (props: SolidToolProps) => JSX.Element;
+    }
+> = ({
+    docUrl,
+    docPath,
+    annotations,
+    setCommentState,
+    solidComponent = ModelPaneComponent,
+}) => {
+    const handle = useDocHandle<ModelDoc>(docUrl, { suspense: true });
+    const repo = useRepo();
+
+    const solidContainerRef = useRef<HTMLDivElement>(null);
+    const solidDisposeRef = useRef<(() => void) | null>(null);
+
+    const [getAnnotations, setAnnotations] = useMemo(
+        () => createSignal<Annotation<Uuid, Cell<unknown>>[]>([]),
+        []
+    );
+
+    const onAddComment = useStaticCallback((cellId: Uuid) => {
+        console.log("add comment", cellId, setCommentState);
+
+        setCommentState?.({
+            type: "create",
+            target: [cellId],
+        });
+    });
+
+    useEffect(() => {
+        if (!handle || !repo) {
+            return;
+        }
+
+        console.log("remount", docUrl);
+
+        if (solidContainerRef.current) {
+            // Clean up previous render
+            if (solidDisposeRef.current) {
+                solidDisposeRef.current();
+            }
+
+            solidDisposeRef.current = render(
+                () =>
+                    createComponent(solidComponent, {
+                        docUrl,
+                        repo,
+                        annotations: getAnnotations,
+                        onAddComment,
+                    }),
+                solidContainerRef.current
+            );
+        }
+
+        // Cleanup on unmount
+        return () => {
+            if (solidDisposeRef.current) {
+                solidDisposeRef.current();
+                solidDisposeRef.current = null;
+            }
+        };
+    }, [docUrl, handle, solidComponent]);
+
+    useEffect(() => {
+        setAnnotations(annotations || []);
+    }, [annotations]);
+
+    if (!handle) {
+        return null;
+    }
+
+    // We use React.createElement here to avoid bringing in React's JSX transform.
+    // We had some trouble with combining both solid and react JSX in one build.
+    return React.createElement("div", { ref: solidContainerRef });
+};

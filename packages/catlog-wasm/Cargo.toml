@@ -10,6 +10,9 @@ crate-type = ["cdylib", "rlib"]
 [features]
 default = ["console_error_panic_hook"]
 
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
 [dependencies]
 all-the-same = "1.1.0"
 catlog = { path = "../catlog", features = ["ode", "serde-wasm"] }

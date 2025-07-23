@@ -1,8 +1,16 @@
 import { useParams } from "@solidjs/router";
-import { Match, Show, Switch, createResource, useContext } from "solid-js";
+import {
+    Accessor,
+    Match,
+    Show,
+    Switch,
+    createResource,
+    useContext,
+    createEffect,
+} from "solid-js";
 import invariant from "tiny-invariant";
 
-import type { ModelJudgment } from "catlog-wasm";
+import type { Cell, ModelJudgment, Uuid } from "catlog-wasm";
 import { useApi } from "../api";
 import { InlineInput } from "../components";
 import {
@@ -36,6 +44,7 @@ import {
 } from "./types";
 
 import "./model_editor.css";
+import { Annotation } from "@patchwork/sdk/versionControl";
 
 export default function ModelPage() {
     const api = useApi();
@@ -46,7 +55,7 @@ export default function ModelPage() {
 
     const [liveModel] = createResource(
         () => params.ref,
-        (refId) => getLiveModel(refId, api, theories),
+        (refId) => getLiveModel(refId, api, theories)
     );
 
     return (
@@ -56,9 +65,7 @@ export default function ModelPage() {
     );
 }
 
-export function ModelDocumentEditor(props: {
-    liveModel: LiveModelDocument;
-}) {
+export function ModelDocumentEditor(props: { liveModel: LiveModelDocument }) {
     return (
         <div class="growable-container">
             <Toolbar>
@@ -80,6 +87,8 @@ export function ModelDocumentEditor(props: {
  */
 export function ModelPane(props: {
     liveModel: LiveModelDocument;
+    annotations?: Accessor<Annotation<Uuid, Cell<unknown>>[]>;
+    onAddComment?: (cellId: Uuid) => void;
 }) {
     const theories = useContext(TheoryLibraryContext);
     invariant(theories, "Library of theories should be provided as context");
@@ -108,10 +117,16 @@ export function ModelPane(props: {
                         });
                     }}
                     theories={theories}
-                    disabled={liveDoc().doc.notebook.cells.some((cell) => cell.tag === "formal")}
+                    disabled={liveDoc().doc.notebook.cells.some(
+                        (cell) => cell.tag === "formal"
+                    )}
                 />
             </div>
-            <ModelNotebookEditor liveModel={props.liveModel} />
+            <ModelNotebookEditor
+                liveModel={props.liveModel}
+                annotations={props.annotations}
+                onAddComment={props.onAddComment}
+            />
         </div>
     );
 }
@@ -120,6 +135,8 @@ export function ModelPane(props: {
  */
 export function ModelNotebookEditor(props: {
     liveModel: LiveModelDocument;
+    annotations?: Accessor<Annotation<Uuid, Cell<unknown>>[]>;
+    onAddComment?: (cellId: Uuid) => void;
 }) {
     const liveDoc = () => props.liveModel.liveDoc;
 
@@ -139,6 +156,8 @@ export function ModelNotebookEditor(props: {
                 cellConstructors={cellConstructors()}
                 cellLabel={judgmentLabel}
                 duplicateCell={duplicateModelJudgment}
+                annotations={props.annotations}
+                onAddComment={props.onAddComment}
             />
         </LiveModelContext.Provider>
     );
@@ -146,13 +165,17 @@ export function ModelNotebookEditor(props: {
 
 /** Editor for a notebook cell in a model notebook.
  */
-function ModelCellEditor(props: FormalCellEditorProps<ModelJudgment>) {
+export function ModelCellEditor(props: FormalCellEditorProps<ModelJudgment>) {
     return (
         <Switch>
             <Match when={props.content.tag === "object"}>
                 <ObjectCellEditor
                     object={props.content as ObjectDecl}
-                    modifyObject={(f) => props.changeContent((content) => f(content as ObjectDecl))}
+                    modifyObject={(f) =>
+                        props.changeContent((content) =>
+                            f(content as ObjectDecl)
+                        )
+                    }
                     isActive={props.isActive}
                     actions={props.actions}
                 />
@@ -161,7 +184,9 @@ function ModelCellEditor(props: FormalCellEditorProps<ModelJudgment>) {
                 <MorphismCellEditor
                     morphism={props.content as MorphismDecl}
                     modifyMorphism={(f) =>
-                        props.changeContent((content) => f(content as MorphismDecl))
+                        props.changeContent((content) =>
+                            f(content as MorphismDecl)
+                        )
                     }
                     isActive={props.isActive}
                     actions={props.actions}
@@ -171,7 +196,9 @@ function ModelCellEditor(props: FormalCellEditorProps<ModelJudgment>) {
     );
 }
 
-function modelCellConstructor(meta: ModelTypeMeta): CellConstructor<ModelJudgment> {
+function modelCellConstructor(
+    meta: ModelTypeMeta
+): CellConstructor<ModelJudgment> {
     const { name, description, shortcut } = meta;
     return {
         name,

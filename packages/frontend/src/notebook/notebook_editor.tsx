@@ -5,6 +5,7 @@ import type { DocHandle, Prop } from "@automerge/automerge-repo";
 import { type KbdKey, createShortcut } from "@solid-primitives/keyboard";
 import ListPlus from "lucide-solid/icons/list-plus";
 import {
+    Accessor,
     type Component,
     For,
     Match,
@@ -15,7 +16,7 @@ import {
     onCleanup,
 } from "solid-js";
 
-import type { Cell, Notebook } from "catlog-wasm";
+import type { Cell, Notebook, Uuid } from "catlog-wasm";
 import { type Completion, IconButton } from "../components";
 import { deepCopyJSON } from "../util/deepcopy";
 import {
@@ -26,7 +27,13 @@ import {
     StemCellEditor,
     isCellDragData,
 } from "./notebook_cell";
-import { type FormalCell, newFormalCell, newRichTextCell, newStemCell } from "./types";
+import {
+    type FormalCell,
+    newFormalCell,
+    newRichTextCell,
+    newStemCell,
+} from "./types";
+import { Annotation } from "@patchwork/sdk/versionControl";
 
 import "./notebook_editor.css";
 
@@ -78,8 +85,13 @@ export function NotebookEditor<T>(props: {
 
     // FIXME: Remove this option once we fix focus management.
     noShortcuts?: boolean;
+
+    annotations?: Accessor<Annotation<Uuid, Cell<unknown>>[]>;
+    onAddComment?: (cellId: Uuid) => void;
 }) {
-    const [activeCell, setActiveCell] = createSignal(props.notebook.cells.length > 0 ? 0 : -1);
+    const [activeCell, setActiveCell] = createSignal(
+        props.notebook.cells.length > 0 ? 0 : -1
+    );
 
     // Set up commands and their keyboard shortcuts.
 
@@ -170,7 +182,9 @@ export function NotebookEditor<T>(props: {
                 createShortcut(command.shortcut, () => command.onComplete?.());
             }
         }
-        createShortcut(["Shift", "Enter"], () => addAfterActiveCell(newStemCell()));
+        createShortcut(["Shift", "Enter"], () =>
+            addAfterActiveCell(newStemCell())
+        );
     });
 
     // Set up drag and drop of notebook cells.
@@ -179,18 +193,33 @@ export function NotebookEditor<T>(props: {
             canMonitor({ source }) {
                 return (
                     isCellDragData(source.data) &&
-                    props.notebook.cells.some((cell) => cell.id === source.data.cellId)
+                    props.notebook.cells.some(
+                        (cell) => cell.id === source.data.cellId
+                    )
                 );
             },
             onDrop({ location, source }) {
                 const target = location.current.dropTargets[0];
-                if (!(target && isCellDragData(source.data) && isCellDragData(target.data))) {
+                if (
+                    !(
+                        target &&
+                        isCellDragData(source.data) &&
+                        isCellDragData(target.data)
+                    )
+                ) {
                     return;
                 }
-                const [sourceId, targetId] = [source.data.cellId, target.data.cellId];
+                const [sourceId, targetId] = [
+                    source.data.cellId,
+                    target.data.cellId,
+                ];
                 const nb = props.notebook;
-                const sourceIndex = nb.cells.findIndex((cell) => cell.id === sourceId);
-                const targetIndex = nb.cells.findIndex((cell) => cell.id === targetId);
+                const sourceIndex = nb.cells.findIndex(
+                    (cell) => cell.id === sourceId
+                );
+                const targetIndex = nb.cells.findIndex(
+                    (cell) => cell.id === targetId
+                );
                 if (sourceIndex < 0 || targetIndex < 0) {
                     return;
                 }
@@ -216,12 +245,23 @@ export function NotebookEditor<T>(props: {
                     <IconButton onClick={() => appendCell(newStemCell())}>
                         <ListPlus />
                     </IconButton>
-                    <span>Click button or press Shift-Enter to create a cell</span>
+                    <span>
+                        Click button or press Shift-Enter to create a cell
+                    </span>
                 </div>
             </Show>
             <ul class="notebook-cells">
                 <For each={props.notebook.cells}>
                     {(cell, i) => {
+                        // Create a derived signal that will track annotations() changes
+                        const cellAnnotation = () =>
+                            props
+                                .annotations?.()
+                                ?.find(
+                                    (annotation) =>
+                                        annotation.anchor === cell.id
+                                );
+
                         const isActive = () => activeCell() === i();
                         const cellActions: CellActions = {
                             activateAbove() {
@@ -258,27 +298,47 @@ export function NotebookEditor<T>(props: {
                             duplicate() {
                                 const cell = props.notebook.cells[i()];
                                 props.changeNotebook((nb) => {
-                                    cell && nb.cells.splice(i() + 1, 0, duplicateCell(cell));
+                                    cell &&
+                                        nb.cells.splice(
+                                            i() + 1,
+                                            0,
+                                            duplicateCell(cell)
+                                        );
                                 });
                             },
                             moveUp() {
                                 props.changeNotebook((nb) => {
                                     if (i() > 0) {
-                                        const [cellToMoveUp] = nb.cells.splice(i(), 1);
-                                        nb.cells.splice(i() - 1, 0, deepCopyJSON(cellToMoveUp));
+                                        const [cellToMoveUp] = nb.cells.splice(
+                                            i(),
+                                            1
+                                        );
+                                        nb.cells.splice(
+                                            i() - 1,
+                                            0,
+                                            deepCopyJSON(cellToMoveUp)
+                                        );
                                     }
                                 });
                             },
                             moveDown() {
                                 props.changeNotebook((nb) => {
                                     if (i() < nb.cells.length - 1) {
-                                        const [cellToMoveDown] = nb.cells.splice(i(), 1);
-                                        nb.cells.splice(i() + 1, 0, deepCopyJSON(cellToMoveDown));
+                                        const [cellToMoveDown] =
+                                            nb.cells.splice(i(), 1);
+                                        nb.cells.splice(
+                                            i() + 1,
+                                            0,
+                                            deepCopyJSON(cellToMoveDown)
+                                        );
                                     }
                                 });
                             },
                             hasFocused() {
                                 setActiveCell(i());
+                            },
+                            addComment() {
+                                props.onAddComment?.(cell.id);
                             },
                         };
 
@@ -292,24 +352,40 @@ export function NotebookEditor<T>(props: {
                                             ? props.cellLabel?.(cell.content)
                                             : undefined
                                     }
+                                    annotation={cellAnnotation()}
                                 >
                                     <Switch>
                                         <Match when={cell.tag === "rich-text"}>
                                             <RichTextCellEditor
                                                 cellId={cell.id}
                                                 handle={props.handle}
-                                                path={[...props.path, "cells", i()]}
+                                                path={[
+                                                    ...props.path,
+                                                    "cells",
+                                                    i(),
+                                                ]}
                                                 isActive={isActive()}
                                                 actions={cellActions}
                                             />
                                         </Match>
                                         <Match when={cell.tag === "formal"}>
                                             <props.formalCellEditor
-                                                content={(cell as FormalCell<T>).content}
+                                                content={
+                                                    (cell as FormalCell<T>)
+                                                        .content
+                                                }
                                                 changeContent={(f) => {
-                                                    props.changeNotebook((nb) => {
-                                                        f((nb.cells[i()] as FormalCell<T>).content);
-                                                    });
+                                                    props.changeNotebook(
+                                                        (nb) => {
+                                                            f(
+                                                                (
+                                                                    nb.cells[
+                                                                        i()
+                                                                    ] as FormalCell<T>
+                                                                ).content
+                                                            );
+                                                        }
+                                                    );
                                                 }}
                                                 isActive={isActive()}
                                                 actions={cellActions}
@@ -317,7 +393,9 @@ export function NotebookEditor<T>(props: {
                                         </Match>
                                         <Match when={cell.tag === "stem"}>
                                             <StemCellEditor
-                                                completions={replaceCommands(i())}
+                                                completions={replaceCommands(
+                                                    i()
+                                                )}
                                                 isActive={isActive()}
                                                 actions={cellActions}
                                             />
@@ -329,7 +407,9 @@ export function NotebookEditor<T>(props: {
                     }}
                 </For>
             </ul>
-            <Show when={props.notebook.cells.some((cell) => cell.tag !== "stem")}>
+            <Show
+                when={props.notebook.cells.some((cell) => cell.tag !== "stem")}
+            >
                 <div class="placeholder">
                     <IconButton
                         onClick={() => appendCell(newStemCell())}
@@ -349,4 +429,6 @@ The choice is platform-specific: On Mac, the Alt/Option key remaps keys, so we
 use Control, whereas on other platforms Control tends to be already bound in
 other shortcuts, so we Alt.
  */
-export const cellShortcutModifier: KbdKey = navigator.userAgent.includes("Mac") ? "Control" : "Alt";
+export const cellShortcutModifier: KbdKey = navigator.userAgent.includes("Mac")
+    ? "Control"
+    : "Alt";

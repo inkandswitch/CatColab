@@ -7,6 +7,21 @@
     justify-content: space-between;
 }
 
+.cell.cell-added {
+    border-left: 3px solid #68c58a;
+    background-color: #d4ffe1;
+    margin-left: 0px;
+    padding-left: 4px;
+}
+
+.cell.cell-changed {
+    border-left: 3px solid #f8b62e;
+    background-color: #ffefc0;
+    margin-left: 0px;
+    padding-left: 4px;
+}
+
+
 .cell-gutter {
     position: absolute;
     top: 50%;

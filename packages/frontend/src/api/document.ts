@@ -1,18 +1,19 @@
 import {
+    AutomergeUrl,
     type ChangeFn,
     type DocHandle,
     type DocHandleChangePayload,
     type DocumentId,
+    isValidAutomergeUrl,
     Repo,
 } from "@automerge/automerge-repo";
 import { type Accessor, createEffect, createSignal } from "solid-js";
-import { createStore, reconcile } from "solid-js/store";
+import { createStore } from "solid-js/store";
 import invariant from "tiny-invariant";
 import * as uuid from "uuid";
 
 import type { Permissions } from "catcolab-api";
 import type { Document } from "catlog-wasm";
-import { PermissionsError } from "../util/errors";
 import type { Api } from "./types";
 
 /** An Automerge repo with no networking, used for read-only documents. */
@@ -54,56 +55,49 @@ and upgrade it to the latest version.
  */
 export async function getLiveDoc<Doc extends Document>(
     api: Api,
-    refId: string,
-    docType?: string,
+    refId: AutomergeUrl,
+    docType?: string
 ): Promise<LiveDoc<Doc>> {
-    invariant(uuid.validate(refId), () => `Invalid document ref ${refId}`);
-    const { rpc, repo } = api;
+    invariant(
+        isValidAutomergeUrl(refId),
+        () => `Invalid document ref ${refId}`
+    );
+    const { repo } = api;
 
-    const result = await rpc.get_doc.query(refId);
-    if (result.tag !== "Ok") {
-        if (result.code === 403) {
-            throw new PermissionsError(result.message);
-        } else {
-            throw new Error(`Failed to retrieve document: ${result.message}`);
-        }
-    }
-    const refDoc = result.content;
-
-    let docHandle: DocHandle<Doc>;
-    if (refDoc.tag === "Live") {
-        const docId = refDoc.docId as DocumentId;
-        docHandle = repo.find(docId) as DocHandle<Doc>;
-    } else {
-        const init = refDoc.content as unknown as Doc;
-        docHandle = localRepo.create(init);
-    }
+    let docHandle = await repo.find<Doc>(refId);
 
     const doc = await makeDocHandleReactive(docHandle);
     if (docType !== undefined) {
         invariant(
             doc.type === docType,
-            () => `Expected document of type ${docType}, got ${doc.type}`,
+            () => `Expected document of type ${docType}, got ${doc.type}`
         );
     }
 
     const changeDoc = (f: ChangeFn<Doc>) => docHandle.change(f);
 
-    const permissions = refDoc.permissions;
+    const permissions: Permissions = { anyone: "Own", user: "Own", users: [] };
     return { doc, changeDoc, docHandle, permissions };
 }
 
 /** Create a Solid Store that tracks an Automerge document.
  */
-export async function makeDocHandleReactive<T extends object>(handle: DocHandle<T>): Promise<T> {
-    const init = await handle.doc();
+export async function makeDocHandleReactive<T extends object>(
+    handle: DocHandle<T>
+): Promise<T> {
+    const init = handle.doc();
 
     const [store, setStore] = createStore<T>(init as T);
 
     const onChange = (payload: DocHandleChangePayload<T>) => {
         // Use [`reconcile`](https://www.solidjs.com/tutorial/stores_immutable)
         // function to diff the data and thus avoid re-rendering the whole DOM.
-        setStore(reconcile(payload.doc));
+
+        // setStore(reconcile(payload.doc));
+
+        // todo: using reconcile leads to corrupt state when switching branches
+        // rerendering every time seems fine
+        setStore(payload.doc);
     };
 
     handle.on("change", onChange);
@@ -113,7 +107,9 @@ export async function makeDocHandleReactive<T extends object>(handle: DocHandle<
 
 /** Create a boolean signal for whether an Automerge document handle is ready.
  */
-export function useDocHandleReady(getHandle: () => DocHandle<unknown>): Accessor<boolean> {
+export function useDocHandleReady(
+    getHandle: () => DocHandle<unknown>
+): Accessor<boolean> {
     const [isReady, setIsReady] = createSignal<boolean>(false);
 
     createEffect(() => {
