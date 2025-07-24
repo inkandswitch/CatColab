@@ -1,6 +1,9 @@
 import { Accessor, createContext, useContext } from "solid-js";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
-import type { Annotation } from "@patchwork/sdk/annotations";
+import type {
+    Annotation,
+    DocLinkWithAnnotations,
+} from "@patchwork/sdk/annotations";
 
 export type DocUrlWithAnnotations = {
     originalUrl: AutomergeUrl;
@@ -9,7 +12,7 @@ export type DocUrlWithAnnotations = {
 };
 
 export const AnnotationsContext = createContext<
-    Accessor<DocUrlWithAnnotations[]>
+    Accessor<DocLinkWithAnnotations[]>
 >(() => []);
 
 export const useAnnotationsOfDoc = <D, T, V>(
@@ -21,7 +24,9 @@ export const useAnnotationsOfDoc = <D, T, V>(
     }
 
     const docWithAnnotations = context().find(
-        (item) => item.cloneUrl === docUrl || item.originalUrl === docUrl
+        (docLinkWithAnnotations) =>
+            docLinkWithAnnotations.url === docUrl ||
+            docLinkWithAnnotations.main?.url === docUrl
     );
 
     return (docWithAnnotations?.annotations ?? []) as Annotation<D, T, V>[];

@@ -1,7 +1,6 @@
-import { AutomergeUrl, Repo } from "@automerge/automerge-repo";
-import { useRepo } from "@automerge/automerge-repo-react-hooks";
-import { AnnotationsViewProps } from "@patchwork/sdk";
-import { Annotation } from "@patchwork/sdk/versionControl";
+import { AutomergeUrl, DocHandle, Repo } from "@automerge/automerge-repo";
+import { useDocument, useRepo } from "@automerge/automerge-repo-react-hooks";
+import { Annotation, AnnotationsViewProps } from "@patchwork/sdk/annotations";
 import { Cell, Uuid } from "catlog-wasm";
 import React, { useEffect, useRef } from "react";
 import {
@@ -21,16 +20,99 @@ import { CellActions, FormalCell } from "../../frontend/src/notebook";
 import { stdTheories, TheoryLibraryContext } from "../../frontend/src/stdlib";
 import "./annotations_view.css";
 import { ModelDoc } from "./model_datatype";
+import { Component } from "solid-js";
+import { AnalysisDoc } from "./analysis_datatype";
 
-export const CellAnnotationsView: React.FC<
-    AnnotationsViewProps<ModelDoc, Uuid, Cell<unknown>>
-> = ({ annotations, doc, handle }) => {
+type CellViewProps = {
+    cell: Cell<unknown>;
+};
+
+export function ModelAnnotationsView({
+    annotations,
+    docUrl,
+}: AnnotationsViewProps<ModelDoc, Uuid, Cell<unknown>> & {
+    CellView: Component<CellViewProps>;
+}) {
+    return React.createElement(CellAnnotationsView, {
+        annotations,
+        modelDocUrl: docUrl,
+        CellView: ModelCellView,
+    });
+}
+
+const ModelCellView: Component<CellViewProps> = ({ cell }) => {
+    return (
+        <Switch>
+            <Match when={cell.tag === "rich-text"}>
+                Rich text cell
+                {/*<RichTextCellEditor
+                    cellId={cell.id}
+                    handle={
+                        props.handle
+                    }
+                    path={[
+                        ...props.path,
+                        "cells",
+                        i(),
+                    ]}
+                    isActive={isActive()}
+                    actions={
+                        cellActions
+                    }
+                />*/}
+            </Match>
+            <Match when={cell.tag === "formal"}>
+                <ModelCellEditor
+                    content={(cell as FormalCell<any>).content}
+                    changeContent={(_) => {}}
+                    isActive={false}
+                    actions={{} as CellActions}
+                />
+            </Match>
+        </Switch>
+    );
+};
+
+export function AnalysisAnnotationsView({
+    annotations,
+    docUrl,
+}: AnnotationsViewProps<AnalysisDoc, Uuid, Cell<unknown>> & {
+    CellView: Component<CellViewProps>;
+}) {
+    const [analysisDoc] = useDocument<AnalysisDoc>(docUrl);
+
+    const modelDocUrl = analysisDoc?.analysisOf?._id;
+    if (!modelDocUrl) {
+        return null;
+    }
+
+    return React.createElement(CellAnnotationsView, {
+        annotations,
+        modelDocUrl,
+        CellView: AnalysisCellView,
+    });
+}
+
+const AnalysisCellView: Component<CellViewProps> = ({ cell }) => {
+    return <div>Analysis cell</div>;
+};
+
+export function CellAnnotationsView({
+    annotations,
+    modelDocUrl,
+    CellView,
+}: {
+    annotations: Annotation<ModelDoc | AnalysisDoc, Uuid, Cell<unknown>>[];
+    modelDocUrl: AutomergeUrl;
+    CellView: Component<CellViewProps>;
+}) {
     const solidContainerRef = useRef<HTMLDivElement>(null);
     const solidDisposeRef = useRef<(() => void) | null>(null);
     const repo = useRepo();
+    const modelHandle = useDocument<ModelDoc>(modelDocUrl);
 
     useEffect(() => {
-        if (solidContainerRef.current) {
+        if (solidContainerRef.current && modelHandle) {
             // Clean up previous render
             if (solidDisposeRef.current) {
                 solidDisposeRef.current();
@@ -38,10 +120,11 @@ export const CellAnnotationsView: React.FC<
 
             solidDisposeRef.current = render(
                 () =>
-                    createComponent(CellAnnotationsViewSolidComponent, {
+                    createComponent(CellAnnotationsViewSolid, {
                         repo,
                         annotations,
-                        docUrl: handle.url,
+                        modelDocUrl,
+                        CellView,
                     }),
                 solidContainerRef.current
             );
@@ -54,27 +137,30 @@ export const CellAnnotationsView: React.FC<
                 solidDisposeRef.current = null;
             }
         };
-    }, [annotations, repo, doc]);
+    }, [annotations, repo]);
 
     // We use React.createElement here to avoid bringing in React's JSX transform.
     // We had some trouble with combining both solid and react JSX in one build.
     return React.createElement("div", { ref: solidContainerRef });
-};
+}
 
 type CellAnnotationsViewSolidComponentProps = {
     repo: Repo;
-    annotations: Annotation<Uuid, Cell<unknown>>[];
-    docUrl: AutomergeUrl;
+    annotations: Annotation<ModelDoc | AnalysisDoc, Uuid, Cell<unknown>>[];
+    modelDocUrl: AutomergeUrl;
+    CellView: Component<{ cell: Cell<unknown> }>;
 };
 
-export function CellAnnotationsViewSolidComponent(
+function CellAnnotationsViewSolid(
     props: CellAnnotationsViewSolidComponentProps
 ) {
+    const CellView = props.CellView;
+
     // Typescript gets confused because the patchwork and the frontend package both import "@automerge/automerge-repo" in their package.json
     const api = { repo: props.repo as any };
 
     const [liveModel] = createResource(
-        () => props.docUrl,
+        () => props.modelDocUrl,
         async (refId) => {
             try {
                 return await getLiveModel(refId, api, stdTheories);
@@ -119,7 +205,9 @@ export function CellAnnotationsViewSolidComponent(
                                                             <div class="annotation annotation-added">
                                                                 <CellView
                                                                     cell={
-                                                                        annotation.added
+                                                                        annotation
+                                                                            .pointer
+                                                                            .value
                                                                     }
                                                                 />
                                                             </div>
@@ -129,7 +217,9 @@ export function CellAnnotationsViewSolidComponent(
                                                             <div class="annotation annotation-deleted">
                                                                 <CellView
                                                                     cell={
-                                                                        annotation.deleted
+                                                                        annotation
+                                                                            .pointer
+                                                                            .value
                                                                     }
                                                                 />
                                                             </div>
@@ -143,7 +233,9 @@ export function CellAnnotationsViewSolidComponent(
                                                                 <div class="annotation">
                                                                     <CellView
                                                                         cell={
-                                                                            annotation.before
+                                                                            annotation
+                                                                                .before
+                                                                                .value
                                                                         }
                                                                     />
                                                                 </div>
@@ -153,21 +245,12 @@ export function CellAnnotationsViewSolidComponent(
                                                                 <div class="annotation annotation-changed">
                                                                     <CellView
                                                                         cell={
-                                                                            annotation.after
+                                                                            annotation
+                                                                                .after
+                                                                                .value
                                                                         }
                                                                     />
                                                                 </div>
-                                                            </div>
-                                                        );
-
-                                                    case "highlighted":
-                                                        return (
-                                                            <div class="annotation annotation-highlighted">
-                                                                <CellView
-                                                                    cell={
-                                                                        annotation.value
-                                                                    }
-                                                                />
                                                             </div>
                                                         );
                                                 }
@@ -181,38 +264,5 @@ export function CellAnnotationsViewSolidComponent(
                 </Show>
             </div>
         </div>
-    );
-}
-
-function CellView<T = unknown>({ cell }: { cell: Cell<T> }) {
-    return (
-        <Switch>
-            <Match when={cell.tag === "rich-text"}>
-                Rich text cell
-                {/*<RichTextCellEditor
-                    cellId={cell.id}
-                    handle={
-                        props.handle
-                    }
-                    path={[
-                        ...props.path,
-                        "cells",
-                        i(),
-                    ]}
-                    isActive={isActive()}
-                    actions={
-                        cellActions
-                    }
-                />*/}
-            </Match>
-            <Match when={cell.tag === "formal"}>
-                <ModelCellEditor
-                    content={(cell as FormalCell<T>).content}
-                    changeContent={(_) => {}}
-                    isActive={false}
-                    actions={{} as CellActions}
-                />
-            </Match>
-        </Switch>
     );
 }

@@ -1,10 +1,11 @@
 import { HasVersionControlMetadata } from "@patchwork/sdk/versionControl";
 import { type DataTypeImplementation, initFrom } from "@patchwork/sdk";
 import { AutomergeUrl } from "@automerge/automerge-repo";
+import { Cell, Uuid } from "catlog-wasm";
 
 // SCHEMA
 
-export type AnalysisDoc = HasVersionControlMetadata<unknown, unknown> & {
+export type AnalysisDoc = HasVersionControlMetadata<Uuid, Cell<unknown>> & {
     name: string;
     theory: string;
     type: string;

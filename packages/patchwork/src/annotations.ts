@@ -3,10 +3,15 @@ import {
     Pointer,
     AnnotationsPluginImplementation,
     Annotation,
+    DiffAnnotation,
 } from "@patchwork/sdk/annotations";
 import { ModelDoc } from "./model_datatype";
 import { AnalysisDoc } from "./analysis_datatype";
-import { Uuid } from "catlog-wasm";
+import { Cell, Uuid } from "catlog-wasm";
+import {
+    AnalysisAnnotationsView,
+    ModelAnnotationsView,
+} from "./annotations_view";
 
 export class CellPointer<D extends ModelDoc | AnalysisDoc>
     implements Pointer<D, Uuid, any>
@@ -28,8 +33,8 @@ const patchesToAnnotation = <D extends ModelDoc | AnalysisDoc>(
     docBefore: D,
     docAfter: D,
     patches: Automerge.Patch[]
-): Annotation<D, Uuid, any>[] => {
-    const annotations: Annotation<D, Uuid, any>[] = [];
+): DiffAnnotation<D, Uuid, Cell<unknown>>[] => {
+    const annotations: DiffAnnotation<D, Uuid, Cell<unknown>>[] = [];
 
     const newCellIds = new Set<Uuid>();
     const changedCellIds = new Set<Uuid>();
@@ -86,17 +91,19 @@ const patchesToAnnotation = <D extends ModelDoc | AnalysisDoc>(
 };
 
 export const AnalysisAnnotationsPlugin: AnnotationsPluginImplementation<
-    ModelDoc,
+    AnalysisDoc,
     Uuid,
-    any
+    Cell<unknown>
 > = {
     patchesToAnnotation: patchesToAnnotation<AnalysisDoc>,
+    AnnotationsView: AnalysisAnnotationsView,
 };
 
 export const ModelAnnotationsPlugin: AnnotationsPluginImplementation<
     ModelDoc,
     Uuid,
-    any
+    Cell<unknown>
 > = {
     patchesToAnnotation: patchesToAnnotation<ModelDoc>,
+    AnnotationsView: ModelAnnotationsView,
 };
