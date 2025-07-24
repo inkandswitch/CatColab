@@ -33,12 +33,12 @@ import {
     newStemCell,
 } from "./types";
 
-import "./notebook_editor.css";
 import { getDiffAnnotationTypeAtPointer } from "@patchwork/sdk/annotations";
-import { useAnnotationsOfDoc } from "../../../patchwork/src/annotations_solid";
-import { CellPointer } from "../../../patchwork/src/annotations";
-import { ModelDoc } from "../../../patchwork/src/model_datatype";
 import { AnalysisDoc } from "../../../patchwork/src/analysis-datatype";
+import { CellPointer } from "../../../patchwork/src/annotations";
+import { useAnnotationsOfDoc } from "../../../patchwork/src/annotations_solid";
+import { ModelDoc } from "../../../patchwork/src/model_datatype";
+import "./notebook_editor.css";
 
 /** Constructor for a cell in a notebook.
 
@@ -238,7 +238,7 @@ export function NotebookEditor<T>(props: {
         onCleanup(cleanup);
     });
 
-    const annotations = useAnnotationsOfDoc(props.handle.url);
+    const annotations = () => useAnnotationsOfDoc(props.handle.url);
 
     return (
         <div class="notebook">
@@ -263,7 +263,7 @@ export function NotebookEditor<T>(props: {
                         const diffAnnotationType = () =>
                             getDiffAnnotationTypeAtPointer(
                                 cellPointer,
-                                annotations
+                                annotations()
                             );
                         const isActive = () => activeCell() === i();
                         const cellActions: CellActions = {

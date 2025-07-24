@@ -19,7 +19,7 @@ importers:
         version: 2.0.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@corvu/dialog':
         specifier: ^0.2.4
-        version: 0.2.4(solid-js@1.9.7)
+        version: 0.2.4(solid-js@frontend+node_modules+.pnpm+solid-js@1.9.2+node_modules+solid-js)
       '@patchwork/sdk':
         specifier: file:../../../patchwork/sdk
         version: file:../../../patchwork/sdk(@types/react@18.3.18)
@@ -34,10 +34,10 @@ importers:
         version: 18.3.1(react@18.3.1)
       solid-element:
         specifier: ^1.8.0
-        version: 1.9.1(solid-js@1.9.7)
+        version: 1.9.1(solid-js@frontend+node_modules+.pnpm+solid-js@1.9.2+node_modules+solid-js)
       solid-js:
-        specifier: ^1.9.2
-        version: 1.9.7
+        specifier: link:../frontend/node_modules/.pnpm/solid-js@1.9.2/node_modules/solid-js
+        version: link:../frontend/node_modules/.pnpm/solid-js@1.9.2/node_modules/solid-js
       tailwindcss:
         specifier: ^4.0.9
         version: 4.0.9
@@ -71,7 +71,7 @@ importers:
         version: 3.5.2(vite@5.4.14(@types/node@18.19.75)(lightningcss@1.29.1))
       vite-plugin-solid:
         specifier: ^2.10.2
-        version: 2.11.6(solid-js@1.9.7)(vite@5.4.14(@types/node@18.19.75)(lightningcss@1.29.1))
+        version: 2.11.6(solid-js@frontend+node_modules+.pnpm+solid-js@1.9.2+node_modules+solid-js)(vite@5.4.14(@types/node@18.19.75)(lightningcss@1.29.1))
       vite-plugin-top-level-await:
         specifier: ^1.4.2
         version: 1.4.4(rollup@4.34.2)(vite@5.4.14(@types/node@18.19.75)(lightningcss@1.29.1))
@@ -1867,16 +1867,6 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
-  seroval-plugins@1.3.2:
-    resolution: {integrity: sha512-0QvCV2lM3aj/U3YozDiVwx9zpH0q8A60CTWIv4Jszj/givcudPb48B+rkU5D51NJ0pTpweGMttHjboPa9/zoIQ==}
-    engines: {node: '>=10'}
-    peerDependencies:
-      seroval: ^1.0
-
-  seroval@1.3.2:
-    resolution: {integrity: sha512-RbcPH1n5cfwKrru7v7+zrZvjLurgHhGyso3HTyGtRivGWgYjbOmGuivCQaORNELjNONoK35nj28EoWul9sb1zQ==}
-    engines: {node: '>=10'}
-
   signia-react@0.1.5:
     resolution: {integrity: sha512-DhHOEJNHIFq0sd4mFpMQx6U0vSb6MGrCS+iVdl1jM2Ts9iNyPc6zaWG/ko+ARS4L2cdHFpNH2l5YqoBNLwMyCw==}
     peerDependencies:
@@ -1903,9 +1893,6 @@ packages:
     resolution: {integrity: sha512-LTyNki6GUJPRLXV5uMWPkYClB07SUMubbr2EkAddiR0CJCF/I283txilMU9RURSr/P8EewMfXWu2o3aWrK7A5A==}
     peerDependencies:
       solid-js: ^1.8
-
-  solid-js@1.9.7:
-    resolution: {integrity: sha512-/saTKi8iWEM233n5OSi1YHCCuh66ZIQ7aK2hsToPe4tqGm7qAejU1SwNuTPivbWAYq7SjuHVVYxxuZQNRbICiw==}
 
   solid-presence@0.2.0:
     resolution: {integrity: sha512-YM92o+jvpzX3XGaD4rLYmq/Kc2ZVh47GSCLEufHBFQQIurvZTs8SoGJxO8BJGNDxBKdcS8F3dYhW1SDXp4BNjA==}
@@ -2509,19 +2496,19 @@ snapshots:
       style-mod: 4.1.2
       w3c-keyname: 2.2.8
 
-  '@corvu/dialog@0.2.4(solid-js@1.9.7)':
+  '@corvu/dialog@0.2.4(solid-js@frontend+node_modules+.pnpm+solid-js@1.9.2+node_modules+solid-js)':
     dependencies:
-      '@corvu/utils': 0.4.2(solid-js@1.9.7)
-      solid-dismissible: 0.1.1(solid-js@1.9.7)
-      solid-focus-trap: 0.1.9(solid-js@1.9.7)
-      solid-js: 1.9.7
-      solid-presence: 0.2.0(solid-js@1.9.7)
-      solid-prevent-scroll: 0.1.10(solid-js@1.9.7)
+      '@corvu/utils': 0.4.2(solid-js@frontend+node_modules+.pnpm+solid-js@1.9.2+node_modules+solid-js)
+      solid-dismissible: 0.1.1(solid-js@frontend+node_modules+.pnpm+solid-js@1.9.2+node_modules+solid-js)
+      solid-focus-trap: 0.1.9(solid-js@frontend+node_modules+.pnpm+solid-js@1.9.2+node_modules+solid-js)
+      solid-js: link:../frontend/node_modules/.pnpm/solid-js@1.9.2/node_modules/solid-js
+      solid-presence: 0.2.0(solid-js@frontend+node_modules+.pnpm+solid-js@1.9.2+node_modules+solid-js)
+      solid-prevent-scroll: 0.1.10(solid-js@frontend+node_modules+.pnpm+solid-js@1.9.2+node_modules+solid-js)
 
-  '@corvu/utils@0.4.2(solid-js@1.9.7)':
+  '@corvu/utils@0.4.2(solid-js@frontend+node_modules+.pnpm+solid-js@1.9.2+node_modules+solid-js)':
     dependencies:
       '@floating-ui/dom': 1.6.13
-      solid-js: 1.9.7
+      solid-js: link:../frontend/node_modules/.pnpm/solid-js@1.9.2/node_modules/solid-js
 
   '@esbuild/aix-ppc64@0.21.5':
     optional: true
@@ -4036,12 +4023,6 @@ snapshots:
 
   semver@7.7.1: {}
 
-  seroval-plugins@1.3.2(seroval@1.3.2):
-    dependencies:
-      seroval: 1.3.2
-
-  seroval@1.3.2: {}
-
   signia-react@0.1.5(react@18.3.1):
     dependencies:
       react: 18.3.1
@@ -4053,43 +4034,37 @@ snapshots:
     dependencies:
       semver: 7.7.1
 
-  solid-dismissible@0.1.1(solid-js@1.9.7):
+  solid-dismissible@0.1.1(solid-js@frontend+node_modules+.pnpm+solid-js@1.9.2+node_modules+solid-js):
     dependencies:
-      '@corvu/utils': 0.4.2(solid-js@1.9.7)
-      solid-js: 1.9.7
+      '@corvu/utils': 0.4.2(solid-js@frontend+node_modules+.pnpm+solid-js@1.9.2+node_modules+solid-js)
+      solid-js: link:../frontend/node_modules/.pnpm/solid-js@1.9.2/node_modules/solid-js
 
-  solid-element@1.9.1(solid-js@1.9.7):
+  solid-element@1.9.1(solid-js@frontend+node_modules+.pnpm+solid-js@1.9.2+node_modules+solid-js):
     dependencies:
       component-register: 0.8.7
-      solid-js: 1.9.7
+      solid-js: link:../frontend/node_modules/.pnpm/solid-js@1.9.2/node_modules/solid-js
 
-  solid-focus-trap@0.1.9(solid-js@1.9.7):
+  solid-focus-trap@0.1.9(solid-js@frontend+node_modules+.pnpm+solid-js@1.9.2+node_modules+solid-js):
     dependencies:
-      '@corvu/utils': 0.4.2(solid-js@1.9.7)
-      solid-js: 1.9.7
+      '@corvu/utils': 0.4.2(solid-js@frontend+node_modules+.pnpm+solid-js@1.9.2+node_modules+solid-js)
+      solid-js: link:../frontend/node_modules/.pnpm/solid-js@1.9.2/node_modules/solid-js
 
-  solid-js@1.9.7:
+  solid-presence@0.2.0(solid-js@frontend+node_modules+.pnpm+solid-js@1.9.2+node_modules+solid-js):
     dependencies:
-      csstype: 3.1.3
-      seroval: 1.3.2
-      seroval-plugins: 1.3.2(seroval@1.3.2)
+      '@corvu/utils': 0.4.2(solid-js@frontend+node_modules+.pnpm+solid-js@1.9.2+node_modules+solid-js)
+      solid-js: link:../frontend/node_modules/.pnpm/solid-js@1.9.2/node_modules/solid-js
 
-  solid-presence@0.2.0(solid-js@1.9.7):
+  solid-prevent-scroll@0.1.10(solid-js@frontend+node_modules+.pnpm+solid-js@1.9.2+node_modules+solid-js):
     dependencies:
-      '@corvu/utils': 0.4.2(solid-js@1.9.7)
-      solid-js: 1.9.7
+      '@corvu/utils': 0.4.2(solid-js@frontend+node_modules+.pnpm+solid-js@1.9.2+node_modules+solid-js)
+      solid-js: link:../frontend/node_modules/.pnpm/solid-js@1.9.2/node_modules/solid-js
 
-  solid-prevent-scroll@0.1.10(solid-js@1.9.7):
-    dependencies:
-      '@corvu/utils': 0.4.2(solid-js@1.9.7)
-      solid-js: 1.9.7
-
-  solid-refresh@0.6.3(solid-js@1.9.7):
+  solid-refresh@0.6.3(solid-js@frontend+node_modules+.pnpm+solid-js@1.9.2+node_modules+solid-js):
     dependencies:
       '@babel/generator': 7.26.5
       '@babel/helper-module-imports': 7.25.9
       '@babel/types': 7.26.7
-      solid-js: 1.9.7
+      solid-js: link:../frontend/node_modules/.pnpm/solid-js@1.9.2/node_modules/solid-js
     transitivePeerDependencies:
       - supports-color
 
@@ -4159,14 +4134,14 @@ snapshots:
     dependencies:
       vite: 5.4.14(@types/node@18.19.75)(lightningcss@1.29.1)
 
-  vite-plugin-solid@2.11.6(solid-js@1.9.7)(vite@5.4.14(@types/node@18.19.75)(lightningcss@1.29.1)):
+  vite-plugin-solid@2.11.6(solid-js@frontend+node_modules+.pnpm+solid-js@1.9.2+node_modules+solid-js)(vite@5.4.14(@types/node@18.19.75)(lightningcss@1.29.1)):
     dependencies:
       '@babel/core': 7.26.7
       '@types/babel__core': 7.20.5
       babel-preset-solid: 1.9.6(@babel/core@7.26.7)
       merge-anything: 5.1.7
-      solid-js: 1.9.7
-      solid-refresh: 0.6.3(solid-js@1.9.7)
+      solid-js: link:../frontend/node_modules/.pnpm/solid-js@1.9.2/node_modules/solid-js
+      solid-refresh: 0.6.3(solid-js@frontend+node_modules+.pnpm+solid-js@1.9.2+node_modules+solid-js)
       vite: 5.4.14(@types/node@18.19.75)(lightningcss@1.29.1)
       vitefu: 1.0.6(vite@5.4.14(@types/node@18.19.75)(lightningcss@1.29.1))
     transitivePeerDependencies:

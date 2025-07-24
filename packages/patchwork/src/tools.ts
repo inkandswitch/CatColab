@@ -1,17 +1,16 @@
-import { DocHandle, Repo } from "@automerge/automerge-repo";
+import { Repo } from "@automerge/automerge-repo";
 import {
     useDocHandle,
     useDocument,
     useRepo,
 } from "@automerge/automerge-repo-react-hooks";
-import { DocPath, EditorProps } from "@patchwork/sdk";
+import { EditorProps } from "@patchwork/sdk";
 import { useAllAnnotations } from "@patchwork/sdk/annotations";
-import { useBranchScopeAndActiveBranchInfo } from "@patchwork/sdk/versionControl";
 import { Cell, Uuid } from "catlog-wasm";
 import React, { useEffect, useMemo, useRef } from "react";
-import { JSX } from "solid-js";
+import { Accessor, JSX, createSignal } from "solid-js";
+
 import { createComponent, render } from "solid-js/web";
-import { createSignal } from "../../frontend/node_modules/.pnpm/solid-js@1.9.2/node_modules/solid-js";
 import { AnalysisDoc } from "./analysis_datatype";
 import { AnalysisPaneComponent } from "./analysis_pane.solid";
 import { ModelDoc } from "./model_datatype";
@@ -21,16 +20,14 @@ import "./tools.css";
 export type SolidToolProps = {
     docUrl: string;
     repo: Repo;
-    annotationsContextValue: () => ReturnType<typeof useAllAnnotations>;
+    annotationsContextValue: Accessor<ReturnType<typeof useAllAnnotations>>;
 };
 
 export const ModelTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
     docUrl,
-    setCommentState,
 }) => {
     return React.createElement(Tool, {
         docUrl,
-        setCommentState,
         solidComponent: ModelPaneComponent,
     });
 };
@@ -95,8 +92,6 @@ export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
 
     return React.createElement(Tool, {
         docUrl: analysisDocUrl,
-        annotations: [],
-        setCommentState: () => {},
         solidComponent: AnalysisPaneComponent,
     });
 };
@@ -138,8 +133,6 @@ const Tool: React.FC<
         if (!handle || !repo) {
             return;
         }
-
-        console.log("remount", docUrl);
 
         if (solidContainerRef.current) {
             // Clean up previous render

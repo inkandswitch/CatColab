@@ -48,7 +48,7 @@ export function AnalysisPaneComponent(props: SolidToolProps) {
                         // Provide contexts using SAME import paths as ModelPane
                         return (
                             <AnnotationsContext.Provider
-                                value={props.annotationsContextValue()}
+                                value={props.annotationsContextValue}
                             >
                                 <ApiContext.Provider value={api}>
                                     <TheoryLibraryContext.Provider

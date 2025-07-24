@@ -6,7 +6,6 @@ import {
     Switch,
     createResource,
     useContext,
-    createEffect,
 } from "solid-js";
 import invariant from "tiny-invariant";
 
@@ -43,8 +42,8 @@ import {
     newObjectDecl,
 } from "./types";
 
-import "./model_editor.css";
 import { Annotation } from "@patchwork/sdk/versionControl";
+import "./model_editor.css";
 
 export default function ModelPage() {
     const api = useApi();
