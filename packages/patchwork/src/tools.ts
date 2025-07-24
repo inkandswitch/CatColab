@@ -84,14 +84,14 @@ export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
                 _id: resolvedModelDocUrl,
             };
         });
-    }, [analysisDocUrl, modelDoc, analysisDocHandle]);
+    }, [resolvedAnalysisDocUrl, modelDoc, analysisDocHandle]);
 
-    if (!analysisDocUrl) {
+    if (!resolvedAnalysisDocUrl) {
         return null;
     }
 
     return React.createElement(Tool, {
-        docUrl: analysisDocUrl,
+        docUrl: resolvedAnalysisDocUrl,
         solidComponent: AnalysisPaneComponent,
     });
 };
