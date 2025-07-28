@@ -8,10 +8,12 @@ import {
 import { ModelDoc } from "./model_datatype";
 import { AnalysisDoc } from "./analysis_datatype";
 import { Cell, Uuid } from "catlog-wasm";
-import {
-    AnalysisAnnotationsView,
-    ModelAnnotationsView,
-} from "./annotations_view";
+import { useEffect, useRef } from "react";
+import { useDocument, useRepo } from "@automerge/automerge-repo-react-hooks";
+import { createComponent, render } from "solid-js/web";
+import React from "react";
+import { AutomergeUrl, Repo } from "@automerge/automerge-repo";
+import { Component } from "solid-js";
 
 export class CellPointer<D extends ModelDoc | AnalysisDoc>
     implements Pointer<D, Uuid, any>
@@ -29,7 +31,7 @@ export class CellPointer<D extends ModelDoc | AnalysisDoc>
     }
 }
 
-const patchesToAnnotation = <D extends ModelDoc | AnalysisDoc>(
+export const patchesToAnnotation = <D extends ModelDoc | AnalysisDoc>(
     docBefore: D,
     docAfter: D,
     patches: Automerge.Patch[]
@@ -90,20 +92,62 @@ const patchesToAnnotation = <D extends ModelDoc | AnalysisDoc>(
     return annotations;
 };
 
-export const AnalysisAnnotationsPlugin: AnnotationsPluginImplementation<
-    AnalysisDoc,
-    Uuid,
-    Cell<unknown>
-> = {
-    patchesToAnnotation: patchesToAnnotation<AnalysisDoc>,
-    AnnotationsView: AnalysisAnnotationsView,
+export type CellAnnotationsViewProps = {
+    repo: Repo;
+    annotations: Annotation<ModelDoc | AnalysisDoc, Uuid, Cell<unknown>>[];
+    docUrl: AutomergeUrl;
 };
 
-export const ModelAnnotationsPlugin: AnnotationsPluginImplementation<
-    ModelDoc,
-    Uuid,
-    Cell<unknown>
-> = {
-    patchesToAnnotation: patchesToAnnotation<ModelDoc>,
-    AnnotationsView: ModelAnnotationsView,
-};
+export function CellAnnotationsViewWrapper({
+    annotations,
+    docUrl,
+    CellAnnotationsView,
+}: {
+    annotations: Annotation<ModelDoc | AnalysisDoc, Uuid, Cell<unknown>>[];
+    docUrl: AutomergeUrl;
+    CellAnnotationsView: Component<CellAnnotationsViewProps>;
+}) {
+    const solidContainerRef = useRef<HTMLDivElement>(null);
+    const solidDisposeRef = useRef<(() => void) | null>(null);
+    const repo = useRepo();
+
+    useEffect(() => {
+        if (solidContainerRef.current) {
+            // Clean up previous render
+            if (solidDisposeRef.current) {
+                solidDisposeRef.current();
+            }
+
+            solidDisposeRef.current = render(
+                () =>
+                    createComponent(CellAnnotationsView, {
+                        repo,
+                        annotations,
+                        docUrl,
+                    }),
+                solidContainerRef.current
+            );
+        }
+
+        // Cleanup on unmount
+        return () => {
+            if (solidDisposeRef.current) {
+                solidDisposeRef.current();
+                solidDisposeRef.current = null;
+            }
+        };
+    }, [annotations, repo]);
+
+    // We use React.createElement here to avoid bringing in React's JSX transform.
+    // We had some trouble with combining both solid and react JSX in one build.
+    return React.createElement("div", { ref: solidContainerRef });
+}
+
+// export const AnalysisAnnotationsPlugin: AnnotationsPluginImplementation<
+//     AnalysisDoc,
+//     Uuid,
+//     Cell<unknown>
+// > = {
+//     patchesToAnnotation: patchesToAnnotation<AnalysisDoc>,
+//     AnnotationsView: AnalysisAnnotationsView,
+// };

@@ -34,10 +34,9 @@ export const plugins: Plugin<any>[] = [
         supportedDataTypes: ["catcolab-model"],
         async load() {
             const { ModelTool } = await import("./tools");
-            const { CellAnnotationsView } = await import("./annotations_view");
+
             return {
                 EditorComponent: ModelTool,
-                AnnotationsViewComponent: CellAnnotationsView,
             };
         },
     },
@@ -49,10 +48,9 @@ export const plugins: Plugin<any>[] = [
         supportedDataTypes: ["catcolab-model"],
         async load() {
             const { AnalysisTool } = await import("./tools");
-            const { CellAnnotationsView } = await import("./annotations_view");
+
             return {
                 EditorComponent: AnalysisTool,
-                AnnotationsViewComponent: CellAnnotationsView,
             };
         },
     },
@@ -64,10 +62,8 @@ export const plugins: Plugin<any>[] = [
         supportedDataTypes: ["catcolab-model"],
         async load() {
             const { SideBySideTool } = await import("./tools");
-            const { CellAnnotationsView } = await import("./annotations_view");
             return {
                 EditorComponent: SideBySideTool,
-                AnnotationsViewComponent: CellAnnotationsView,
             };
         },
     },
@@ -78,18 +74,18 @@ export const plugins: Plugin<any>[] = [
         id: "model-annotations",
         supportedDataTypes: ["catcolab-model"],
         async load() {
-            const { ModelAnnotationsPlugin } = await import("./annotations");
-            return ModelAnnotationsPlugin;
+            const { plugin } = await import("./model_annotations");
+            return plugin;
         },
     } as LoadableAnnotationPlugin,
-    {
-        type: "patchwork:annotations",
-        name: "Analysis Annotations",
-        id: "analysis-annotations",
-        supportedDataTypes: ["catcolab-analysis"],
-        async load() {
-            const { AnalysisAnnotationsPlugin } = await import("./annotations");
-            return AnalysisAnnotationsPlugin;
-        },
-    } as LoadableAnnotationPlugin,
+    // {
+    //     type: "patchwork:annotations",
+    //     name: "Analysis Annotations",
+    //     id: "analysis-annotations",
+    //     supportedDataTypes: ["catcolab-analysis"],
+    //     async load() {
+    //         const { AnalysisAnnotationsPlugin } = await import("./annotations");
+    //         return AnalysisAnnotationsPlugin;
+    //     },
+    // } as LoadableAnnotationPlugin,
 ];

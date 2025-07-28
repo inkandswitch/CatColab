@@ -1,65 +1,53 @@
-import { AutomergeUrl, DocHandle, Repo } from "@automerge/automerge-repo";
-import { useDocument, useRepo } from "@automerge/automerge-repo-react-hooks";
-import { Annotation, AnnotationsViewProps } from "@patchwork/sdk/annotations";
 import { Cell, Uuid } from "catlog-wasm";
-import React, { useEffect, useRef } from "react";
 import {
-    createComponent,
-    createResource,
-    For,
-    Match,
-    Show,
-    Switch,
-} from "solid-js";
-import { render } from "solid-js/web";
+    CellAnnotationsViewProps,
+    CellAnnotationsViewWrapper,
+    patchesToAnnotation,
+} from "./annotations";
+import { AnnotationsViewProps } from "@patchwork/sdk/annotations";
+import { ModelDoc } from "./model_datatype";
+import React from "react";
+import { Component, createResource, For, Match, Show, Switch } from "solid-js";
+import { getLiveModel, LiveModelContext } from "../../frontend/src/model";
+import { stdTheories, TheoryLibraryContext } from "../../frontend/src/stdlib";
 import { ApiContext } from "../../frontend/src/api";
-import { LiveModelContext } from "../../frontend/src/model/context";
-import { getLiveModel } from "../../frontend/src/model/document";
 import { ModelCellEditor } from "../../frontend/src/model/model_editor";
 import { CellActions, FormalCell } from "../../frontend/src/notebook";
-import { stdTheories, TheoryLibraryContext } from "../../frontend/src/stdlib";
-import "./annotations_view.css";
-import { ModelDoc } from "./model_datatype";
-import { Component } from "solid-js";
-import { AnalysisDoc } from "./analysis_datatype";
+import { AnnotationsPluginImplementation } from "../../../../patchwork/sdk/dist/annotations/types";
 
-type CellViewProps = {
-    cell: Cell<unknown>;
-};
-
-export function ModelAnnotationsView({
+export function AnnotationsView({
     annotations,
     docUrl,
-}: AnnotationsViewProps<ModelDoc, Uuid, Cell<unknown>> & {
-    CellView: Component<CellViewProps>;
-}) {
-    return React.createElement(CellAnnotationsView, {
+}: AnnotationsViewProps<ModelDoc, Uuid, Cell<unknown>>) {
+    return React.createElement(CellAnnotationsViewWrapper, {
         annotations,
-        modelDocUrl: docUrl,
-        CellView: ModelCellView,
+        docUrl,
+        CellAnnotationsView,
     });
 }
 
-const ModelCellView: Component<CellViewProps> = ({ cell }) => {
+const CellView: Component<{
+    cell: Cell<unknown>;
+}> = ({ cell }) => {
     return (
         <Switch>
             <Match when={cell.tag === "rich-text"}>
                 Rich text cell
                 {/*<RichTextCellEditor
-                    cellId={cell.id}
-                    handle={
-                        props.handle
-                    }
-                    path={[
-                        ...props.path,
-                        "cells",
-                        i(),
-                    ]}
-                    isActive={isActive()}
-                    actions={
-                        cellActions
-                    }
-                />*/}
+                  cellId={cell.id}
+                  handle={
+                      props.handle
+                  }
+                  path={[
+                      ...props.path,
+                      "cells",
+                      i(),
+                  ]}
+                  isActive={isActive()}
+                  actions={
+                      cellActions
+                  }
+              />*/}
             </Match>
             <Match when={cell.tag === "formal"}>
                 <ModelCellEditor
@@ -73,94 +61,12 @@ const ModelCellView: Component<CellViewProps> = ({ cell }) => {
     );
 };
 
-export function AnalysisAnnotationsView({
-    annotations,
-    docUrl,
-}: AnnotationsViewProps<AnalysisDoc, Uuid, Cell<unknown>> & {
-    CellView: Component<CellViewProps>;
-}) {
-    const [analysisDoc] = useDocument<AnalysisDoc>(docUrl);
-
-    const modelDocUrl = analysisDoc?.analysisOf?._id;
-    if (!modelDocUrl) {
-        return null;
-    }
-
-    return React.createElement(CellAnnotationsView, {
-        annotations,
-        modelDocUrl,
-        CellView: AnalysisCellView,
-    });
-}
-
-const AnalysisCellView: Component<CellViewProps> = ({ cell }) => {
-    return <div>Analysis cell</div>;
-};
-
-export function CellAnnotationsView({
-    annotations,
-    modelDocUrl,
-    CellView,
-}: {
-    annotations: Annotation<ModelDoc | AnalysisDoc, Uuid, Cell<unknown>>[];
-    modelDocUrl: AutomergeUrl;
-    CellView: Component<CellViewProps>;
-}) {
-    const solidContainerRef = useRef<HTMLDivElement>(null);
-    const solidDisposeRef = useRef<(() => void) | null>(null);
-    const repo = useRepo();
-    const modelHandle = useDocument<ModelDoc>(modelDocUrl);
-
-    useEffect(() => {
-        if (solidContainerRef.current && modelHandle) {
-            // Clean up previous render
-            if (solidDisposeRef.current) {
-                solidDisposeRef.current();
-            }
-
-            solidDisposeRef.current = render(
-                () =>
-                    createComponent(CellAnnotationsViewSolid, {
-                        repo,
-                        annotations,
-                        modelDocUrl,
-                        CellView,
-                    }),
-                solidContainerRef.current
-            );
-        }
-
-        // Cleanup on unmount
-        return () => {
-            if (solidDisposeRef.current) {
-                solidDisposeRef.current();
-                solidDisposeRef.current = null;
-            }
-        };
-    }, [annotations, repo]);
-
-    // We use React.createElement here to avoid bringing in React's JSX transform.
-    // We had some trouble with combining both solid and react JSX in one build.
-    return React.createElement("div", { ref: solidContainerRef });
-}
-
-type CellAnnotationsViewSolidComponentProps = {
-    repo: Repo;
-    annotations: Annotation<ModelDoc | AnalysisDoc, Uuid, Cell<unknown>>[];
-    modelDocUrl: AutomergeUrl;
-    CellView: Component<{ cell: Cell<unknown> }>;
-};
-
-function CellAnnotationsViewSolid(
-    props: CellAnnotationsViewSolidComponentProps
-) {
-    const CellView = props.CellView;
-
+function CellAnnotationsView(props: CellAnnotationsViewProps) {
     // Typescript gets confused because the patchwork and the frontend package both import "@automerge/automerge-repo" in their package.json
     const api = { repo: props.repo as any };
 
     const [liveModel] = createResource(
-        () => props.modelDocUrl,
+        () => props.docUrl,
         async (refId) => {
             try {
                 return await getLiveModel(refId, api, stdTheories);
@@ -266,3 +172,12 @@ function CellAnnotationsViewSolid(
         </div>
     );
 }
+
+export const plugin: AnnotationsPluginImplementation<
+    ModelDoc,
+    Uuid,
+    Cell<unknown>
+> = {
+    patchesToAnnotation: patchesToAnnotation<ModelDoc>,
+    AnnotationsView,
+};
