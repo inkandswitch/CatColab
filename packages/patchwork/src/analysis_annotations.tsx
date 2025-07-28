@@ -31,14 +31,12 @@ const CellView: Component<{
     cell: Cell<unknown>;
 }> = ({ cell }) => {
     return (
-        <Switch>
-            <AnalysisCellEditor
-                content={cell.content}
-                changeContent={() => {}}
-                isActive={false}
-                actions={{} as CellActions}
-            />
-        </Switch>
+        <AnalysisCellEditor
+            content={cell.content}
+            changeContent={() => {}}
+            isActive={false}
+            actions={{} as CellActions}
+        />
     );
 };
 
@@ -87,11 +85,6 @@ function CellAnnotationsView(props: CellAnnotationsViewProps) {
                                     >
                                         <For each={props.annotations}>
                                             {(annotation) => {
-                                                console.log(
-                                                    "render annotation",
-                                                    annotation
-                                                );
-
                                                 switch (annotation.type) {
                                                     case "added":
                                                         return (
@@ -165,21 +158,6 @@ export const plugin: AnnotationsPluginImplementation<
     Uuid,
     Cell<unknown>
 > = {
-    patchesToAnnotation: (docBefore, docAfter, patches) => {
-        const annotations = patchesToAnnotation<AnalysisDoc>(
-            docBefore,
-            docAfter,
-            patches
-        );
-        console.log(
-            "patchesToAnnotation",
-            docBefore,
-            docAfter,
-            patches,
-            annotations
-        );
-
-        return annotations;
-    },
+    patchesToAnnotation: patchesToAnnotation<AnalysisDoc>,
     AnnotationsView,
 };
