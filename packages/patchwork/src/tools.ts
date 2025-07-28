@@ -41,18 +41,16 @@ export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
 
     const analysisDocUrl = modelDoc.analysisDocUrl;
 
-    const resolvedAnalysisDocUrl = useMemo(() => {
-        const annotation = docUrlsWithAnnotations.find(
-            (a) => a.originalUrl === analysisDocUrl
-        );
-        return annotation?.cloneUrl ?? analysisDocUrl;
-    }, [modelDoc.analysisDocUrl, docUrlsWithAnnotations]);
+    const resolvedAnalysisDocUrl = useMemo(
+        () =>
+            docUrlsWithAnnotations.find((a) => a.main?.url === analysisDocUrl)
+                ?.url ?? analysisDocUrl,
+        [modelDoc.analysisDocUrl, docUrlsWithAnnotations]
+    );
 
     const resolvedModelDocUrl = useMemo(() => {
-        const annotation = docUrlsWithAnnotations.find(
-            (a) => a.originalUrl === docUrl
-        );
-        return annotation?.cloneUrl ?? docUrl;
+        const annotation = docUrlsWithAnnotations.find((a) => a.url === docUrl);
+        return annotation?.main?.url ?? docUrl;
     }, [docUrl, docUrlsWithAnnotations]);
 
     const analysisDocHandle = useDocHandle<AnalysisDoc>(

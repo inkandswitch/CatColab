@@ -87,6 +87,11 @@ function CellAnnotationsView(props: CellAnnotationsViewProps) {
                                     >
                                         <For each={props.annotations}>
                                             {(annotation) => {
+                                                console.log(
+                                                    "render annotation",
+                                                    annotation
+                                                );
+
                                                 switch (annotation.type) {
                                                     case "added":
                                                         return (
@@ -161,8 +166,20 @@ export const plugin: AnnotationsPluginImplementation<
     Cell<unknown>
 > = {
     patchesToAnnotation: (docBefore, docAfter, patches) => {
-        console.log("patchesToAnnotation", docBefore, docAfter, patches);
-        return patchesToAnnotation<AnalysisDoc>(docBefore, docAfter, patches);
+        const annotations = patchesToAnnotation<AnalysisDoc>(
+            docBefore,
+            docAfter,
+            patches
+        );
+        console.log(
+            "patchesToAnnotation",
+            docBefore,
+            docAfter,
+            patches,
+            annotations
+        );
+
+        return annotations;
     },
     AnnotationsView,
 };
