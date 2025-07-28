@@ -14,11 +14,19 @@
     padding-left: 4px;
 }
 
+.cell.cell-added.cell-highlighted {
+    background-color: #aaffc3;
+}
+
 .cell.cell-changed {
     border-left: 3px solid #f8b62e;
     background-color: #ffefc0;
     margin-left: 0px;
     padding-left: 4px;
+}
+
+.cell.cell-changed.cell-highlighted {
+    background-color: #ffd99b;
 }
 
 

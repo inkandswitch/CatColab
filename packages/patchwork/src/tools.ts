@@ -37,21 +37,23 @@ export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
 }) => {
     const [modelDoc] = useDocument<ModelDoc>(docUrl, { suspense: true });
 
-    const docUrlsWithAnnotations = useAllAnnotations();
+    const { docLinksWithAnnotations } = useAllAnnotations();
 
     const analysisDocUrl = modelDoc.analysisDocUrl;
 
     const resolvedAnalysisDocUrl = useMemo(
         () =>
-            docUrlsWithAnnotations.find((a) => a.main?.url === analysisDocUrl)
+            docLinksWithAnnotations.find((a) => a.main?.url === analysisDocUrl)
                 ?.url ?? analysisDocUrl,
-        [modelDoc.analysisDocUrl, docUrlsWithAnnotations]
+        [modelDoc.analysisDocUrl, docLinksWithAnnotations]
     );
 
-    const resolvedModelDocUrl = useMemo(() => {
-        const annotation = docUrlsWithAnnotations.find((a) => a.url === docUrl);
-        return annotation?.main?.url ?? docUrl;
-    }, [docUrl, docUrlsWithAnnotations]);
+    const resolvedModelDocUrl = useMemo(
+        () =>
+            docLinksWithAnnotations.find((a) => a.main?.url === docUrl)?.url ??
+            docUrl,
+        [docUrl, docLinksWithAnnotations]
+    );
 
     const analysisDocHandle = useDocHandle<AnalysisDoc>(
         resolvedAnalysisDocUrl,
@@ -123,7 +125,11 @@ const Tool: React.FC<
     const solidDisposeRef = useRef<(() => void) | null>(null);
 
     const [getAnnotationsContextValue, setAnnotationsContextValue] = useMemo(
-        () => createSignal<ReturnType<typeof useAllAnnotations>>([]),
+        () =>
+            createSignal<ReturnType<typeof useAllAnnotations>>({
+                docLinksWithAnnotations: [],
+                setSelection: () => {},
+            }),
         []
     );
 

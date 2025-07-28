@@ -33,7 +33,7 @@ import {
     newStemCell,
 } from "./types";
 
-import { getDiffAnnotationTypeAtPointer } from "@patchwork/sdk/annotations";
+import { getDiffAnnotationAtPointer } from "@patchwork/sdk/annotations";
 import { AnalysisDoc } from "../../../patchwork/src/analysis-datatype";
 import { CellPointer } from "../../../patchwork/src/annotations";
 import { useAnnotationsOfDoc } from "../../../patchwork/src/annotations_solid";
@@ -238,7 +238,7 @@ export function NotebookEditor<T>(props: {
         onCleanup(cleanup);
     });
 
-    const annotations = () => useAnnotationsOfDoc(props.handle.url);
+    const { annotations } = useAnnotationsOfDoc(props.handle.url);
 
     return (
         <div class="notebook">
@@ -260,8 +260,8 @@ export function NotebookEditor<T>(props: {
                             cell.id
                         );
 
-                        const diffAnnotationType = () =>
-                            getDiffAnnotationTypeAtPointer(
+                        const diffAnnotation = () =>
+                            getDiffAnnotationAtPointer(
                                 cellPointer,
                                 annotations()
                             );
@@ -352,7 +352,7 @@ export function NotebookEditor<T>(props: {
                                             ? props.cellLabel?.(cell.content)
                                             : undefined
                                     }
-                                    diffAnnotationType={diffAnnotationType()}
+                                    diffAnnotation={diffAnnotation()}
                                 >
                                     <Switch>
                                         <Match when={cell.tag === "rich-text"}>

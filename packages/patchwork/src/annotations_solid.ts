@@ -2,7 +2,9 @@ import { Accessor, createContext, useContext } from "solid-js";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import type {
     Annotation,
+    AnnotationWithUIState,
     DocLinkWithAnnotations,
+    Pointer,
 } from "@patchwork/sdk/annotations";
 
 export type DocUrlWithAnnotations = {
@@ -12,22 +14,35 @@ export type DocUrlWithAnnotations = {
 };
 
 export const AnnotationsContext = createContext<
-    Accessor<DocLinkWithAnnotations[]>
->(() => []);
+    Accessor<{
+        docLinksWithAnnotations: DocLinkWithAnnotations[];
+        setSelection: (docUrl: AutomergeUrl, pointers: Pointer[]) => void;
+    }>
+>();
 
 export const useAnnotationsOfDoc = <D, T, V>(
     docUrl: AutomergeUrl
-): Annotation<D, T, V>[] => {
+): {
+    annotations: Accessor<AnnotationWithUIState<D, T, V>[]>;
+    setSelection: (pointers: Pointer<D, T, V>[]) => void;
+} => {
     const context = useContext(AnnotationsContext);
     if (!context) {
-        return [];
+        throw new Error("AnnotationsContext not found");
     }
 
-    const docWithAnnotations = context().find(
-        (docLinkWithAnnotations) =>
-            docLinkWithAnnotations.url === docUrl ||
-            docLinkWithAnnotations.main?.url === docUrl
-    );
+    const annotations = () => {
+        return (context().docLinksWithAnnotations.find(
+            (docLinkWithAnnotations) =>
+                docLinkWithAnnotations.url === docUrl ||
+                docLinkWithAnnotations.main?.url === docUrl
+        )?.annotations ?? []) as AnnotationWithUIState<D, T, V>[];
+    };
 
-    return (docWithAnnotations?.annotations ?? []) as Annotation<D, T, V>[];
+    return {
+        annotations,
+        setSelection: (pointers: Pointer<D, T, V>[]) => {
+            context().setSelection(docUrl, pointers);
+        },
+    };
 };

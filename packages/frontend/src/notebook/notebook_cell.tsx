@@ -35,6 +35,7 @@ import Trash2 from "lucide-solid/icons/trash-2";
 import MessageCircle from "lucide-solid/icons/message-circle";
 
 import "./notebook_cell.css";
+import { DiffAnnotationWithUIState } from "@patchwork/sdk/annotations";
 
 /** Actions invokable *within* a cell but affecting the larger notebook state.
 
@@ -107,7 +108,7 @@ export function NotebookCell(props: {
     actions: CellActions;
     children: JSX.Element;
     tag?: string;
-    diffAnnotationType?: "added" | "changed" | "deleted";
+    diffAnnotation?: DiffAnnotationWithUIState<unknown, unknown, unknown>;
 }) {
     let rootRef!: HTMLDivElement;
     let handleRef!: HTMLButtonElement;
@@ -179,8 +180,9 @@ export function NotebookCell(props: {
         <div
             class="cell"
             classList={{
-                "cell-added": props.diffAnnotationType === "added",
-                "cell-changed": props.diffAnnotationType === "changed",
+                "cell-added": props.diffAnnotation?.type === "added",
+                "cell-changed": props.diffAnnotation?.type === "changed",
+                "cell-highlighted": props.diffAnnotation?.isSelected,
             }}
             onMouseEnter={showGutter}
             onMouseLeave={hideGutter}
