@@ -78,14 +78,14 @@ export const plugins: Plugin<any>[] = [
             return plugin;
         },
     } as LoadableAnnotationPlugin,
-    // {
-    //     type: "patchwork:annotations",
-    //     name: "Analysis Annotations",
-    //     id: "analysis-annotations",
-    //     supportedDataTypes: ["catcolab-analysis"],
-    //     async load() {
-    //         const { AnalysisAnnotationsPlugin } = await import("./annotations");
-    //         return AnalysisAnnotationsPlugin;
-    //     },
-    // } as LoadableAnnotationPlugin,
+    {
+        type: "patchwork:annotations",
+        name: "Analysis Annotations",
+        id: "analysis-annotations",
+        supportedDataTypes: ["catcolab-analysis"],
+        async load() {
+            const { plugin } = await import("./analysis_annotations");
+            return plugin;
+        },
+    } as LoadableAnnotationPlugin,
 ];

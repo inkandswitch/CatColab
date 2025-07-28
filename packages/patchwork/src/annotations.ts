@@ -1,19 +1,18 @@
 import * as Automerge from "@automerge/automerge";
+import { AutomergeUrl, Repo } from "@automerge/automerge-repo";
+import { useRepo } from "@automerge/automerge-repo-react-hooks";
 import {
-    Pointer,
-    AnnotationsPluginImplementation,
     Annotation,
     DiffAnnotation,
+    Pointer,
 } from "@patchwork/sdk/annotations";
-import { ModelDoc } from "./model_datatype";
-import { AnalysisDoc } from "./analysis_datatype";
 import { Cell, Uuid } from "catlog-wasm";
-import { useEffect, useRef } from "react";
-import { useDocument, useRepo } from "@automerge/automerge-repo-react-hooks";
-import { createComponent, render } from "solid-js/web";
-import React from "react";
-import { AutomergeUrl, Repo } from "@automerge/automerge-repo";
+import React, { useEffect, useRef } from "react";
 import { Component } from "solid-js";
+import { createComponent, render } from "solid-js/web";
+import { AnalysisDoc } from "./analysis_datatype";
+import { ModelDoc } from "./model_datatype";
+import "./annotations.css";
 
 export class CellPointer<D extends ModelDoc | AnalysisDoc>
     implements Pointer<D, Uuid, any>
@@ -142,12 +141,3 @@ export function CellAnnotationsViewWrapper({
     // We had some trouble with combining both solid and react JSX in one build.
     return React.createElement("div", { ref: solidContainerRef });
 }
-
-// export const AnalysisAnnotationsPlugin: AnnotationsPluginImplementation<
-//     AnalysisDoc,
-//     Uuid,
-//     Cell<unknown>
-// > = {
-//     patchesToAnnotation: patchesToAnnotation<AnalysisDoc>,
-//     AnnotationsView: AnalysisAnnotationsView,
-// };

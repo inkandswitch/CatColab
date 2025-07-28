@@ -12,9 +12,9 @@ import { Accessor, JSX, createSignal } from "solid-js";
 
 import { createComponent, render } from "solid-js/web";
 import { AnalysisDoc } from "./analysis_datatype";
-import { AnalysisPaneComponent } from "./analysis_pane.solid";
+import { AnalysisPaneComponent } from "./analysis_pane";
 import { ModelDoc } from "./model_datatype";
-import { ModelPaneComponent } from "./model_pane.solid";
+import { ModelPaneComponent } from "./model_pane";
 import "./tools.css";
 
 export type SolidToolProps = {
