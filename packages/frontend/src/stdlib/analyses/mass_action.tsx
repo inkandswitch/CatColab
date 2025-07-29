@@ -65,6 +65,16 @@ export function MassAction(
     title?: string;
   }
 ) {
+  // Parameter selection for sensitivity analysis
+  type ParameterInfo = {
+    id: string;
+    name: string;
+    type: "object" | "morphism";
+  };
+
+  const [selectedParameter, setSelectedParameter] =
+    createSignal<ParameterInfo | null>(null);
+
   // Scenario selection state
   const scenarios = [
     { id: "half", multiplier: 0.5, label: "Half rate" },
@@ -86,6 +96,31 @@ export function MassAction(
       .filter((jgmt) => jgmt.tag === "morphism")
       .filter((mor) => props.isTransition?.(mor) ?? true);
   }, []);
+
+  // Available parameters for sensitivity analysis
+  const availableParameters = createMemo<ParameterInfo[]>(() => {
+    const params: ParameterInfo[] = [];
+
+    // Add object parameters (initial values)
+    for (const ob of obDecls()) {
+      params.push({
+        id: ob.id,
+        name: `${ob.name} (Initial value)`,
+        type: "object",
+      });
+    }
+
+    // Add morphism parameters (rates)
+    for (const mor of morDecls()) {
+      params.push({
+        id: mor.id,
+        name: `${mor.name} (Rate)`,
+        type: "morphism",
+      });
+    }
+
+    return params;
+  });
 
   const obSchema: ColumnSchema<ObjectDecl>[] = [
     {
@@ -139,21 +174,50 @@ export function MassAction(
     if (!validated || validated.result.tag !== "Ok") return undefined;
 
     const model = validated.model;
-    const morphisms = morDecls();
-    if (morphisms.length === 0) return undefined;
+    const parameter = selectedParameter();
 
-    const firstMorphismId = morphisms[0]!.id;
-    const baseRate = props.content.rates[firstMorphismId] ?? 1;
+    // If no parameter is selected, show normal chart with current values
+    if (!parameter) {
+      const result = props.simulate(model, props.content);
+      if (result.tag !== "Ok") return result as JsResult<ODEPlotData, string>;
+
+      const obIndex = props.liveModel.objectIndex();
+      const states = Array.from(result.content.states.entries()).map(
+        ([id, data]) => ({
+          name: obIndex.map.get(id) ?? "",
+          data,
+          selected: true, // Everything is selected in normal mode
+        })
+      );
+
+      const content: ODEPlotData = {
+        time: result.content.time,
+        states,
+      };
+
+      return { tag: "Ok" as const, content };
+    }
+
+    // Sensitivity analysis mode - get base value for the selected parameter
+    const baseValue =
+      parameter.type === "object"
+        ? props.content.initialValues[parameter.id] ?? 0
+        : props.content.rates[parameter.id] ?? 1;
 
     // Run simulations for all scenarios
     const simulationResults = scenarios.map(({ id, multiplier, label }) => {
       const modifiedContent = {
         ...props.content,
-        rates: {
-          ...props.content.rates,
-          [firstMorphismId]: baseRate * multiplier,
-        },
+        rates: { ...props.content.rates },
+        initialValues: { ...props.content.initialValues },
       };
+
+      // Apply multiplier to the selected parameter
+      if (parameter.type === "object") {
+        modifiedContent.initialValues[parameter.id] = baseValue * multiplier;
+      } else {
+        modifiedContent.rates[parameter.id] = baseValue * multiplier;
+      }
 
       const result = props.simulate(model, modifiedContent);
       return { result, label, multiplier, id };
@@ -217,17 +281,46 @@ export function MassAction(
           <FixedTableEditor rows={[null]} schema={toplevelSchema} />
         </div>
       </Foldable>
-      <div class="scenario-selector">
-        {scenarios.map((scenario) => (
-          <button
-            class={`scenario-tab ${
-              selectedScenario() === scenario.id ? "active" : ""
-            }`}
-            onClick={() => setSelectedScenario(scenario.id)}
+      <div class="sensitivity-controls">
+        <div class="parameter-selector">
+          <label for="sensitivity-parameter">
+            Sensitivity Analysis Parameter:
+          </label>
+          <select
+            id="sensitivity-parameter"
+            value={selectedParameter()?.id ?? ""}
+            onChange={(e) => {
+              const paramId = e.currentTarget.value;
+              if (paramId) {
+                const param = availableParameters().find(
+                  (p) => p.id === paramId
+                );
+                setSelectedParameter(param || null);
+              } else {
+                setSelectedParameter(null);
+              }
+            }}
           >
-            {scenario.label}
-          </button>
-        ))}
+            <option value="">None (show current values)</option>
+            {availableParameters().map((param) => (
+              <option value={param.id}>{param.name}</option>
+            ))}
+          </select>
+        </div>
+        {selectedParameter() && (
+          <div class="scenario-selector">
+            {scenarios.map((scenario) => (
+              <button
+                class={`scenario-tab ${
+                  selectedScenario() === scenario.id ? "active" : ""
+                }`}
+                onClick={() => setSelectedScenario(scenario.id)}
+              >
+                {scenario.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <ODEResultPlot result={combinedPlotResult()} />
     </div>

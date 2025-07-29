@@ -17,12 +17,45 @@
     height: 400px;
 }
 
+.sensitivity-controls {
+    border-top: 1px solid #e0e0e0;
+    padding-top: 1em;
+    margin-bottom: 1em;
+}
+
+.parameter-selector {
+    margin-bottom: 1em;
+}
+
+.parameter-selector label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5em;
+    color: #333;
+}
+
+.parameter-selector select {
+    padding: 0.5em;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 0.9em;
+    min-width: 200px;
+    cursor: pointer;
+}
+
+.parameter-selector select:focus {
+    outline: none;
+    border-color: #007acc;
+    box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+}
+
 .scenario-selector {
     display: flex;
     gap: 0.5em;
-    margin: 1em 0;
-    padding-bottom: 1em;
-    border-bottom: 1px solid #e0e0e0;
+    margin-top: 1em;
+    padding-top: 1em;
+    border-top: 1px solid #f0f0f0;
 }
 
 .scenario-tab {
