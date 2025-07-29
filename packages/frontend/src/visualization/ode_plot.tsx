@@ -8,14 +8,15 @@ const ECharts = lazy(() => import("./echarts"));
 
 /** Data plotted by `ODEPlot` component. */
 export type ODEPlotData = {
-    time: number[];
-    states: StateVarData[];
+  time: number[];
+  states: StateVarData[];
 };
 
 /** Values of a state variable over time. */
 type StateVarData = {
-    name: string;
-    data: number[];
+  name: string;
+  data: number[];
+  selected?: boolean;
 };
 
 /** Display the results from an ODE simulation.
@@ -24,61 +25,65 @@ Plots the output data if the simulation was successful and shows an error
 message otherwise.
  */
 export function ODEResultPlot(props: {
-    result?: JsResult<ODEPlotData, string>;
+  result?: JsResult<ODEPlotData, string>;
 }) {
-    return (
-        <Switch>
-            <Match when={props.result?.tag === "Ok" && props.result.content}>
-                {(data) => <ODEPlot data={data()} />}
-            </Match>
-            <Match when={props.result?.tag === "Err" && props.result.content}>
-                {(err) => <ErrorAlert title="Integration error">{err()}</ErrorAlert>}
-            </Match>
-        </Switch>
-    );
+  return (
+    <Switch>
+      <Match when={props.result?.tag === "Ok" && props.result.content}>
+        {(data) => <ODEPlot data={data()} />}
+      </Match>
+      <Match when={props.result?.tag === "Err" && props.result.content}>
+        {(err) => <ErrorAlert title="Integration error">{err()}</ErrorAlert>}
+      </Match>
+    </Switch>
+  );
 }
 
 /** Plot the output data from an ODE simulation. */
-export function ODEPlot(props: {
-    data: ODEPlotData;
-}) {
-    const options = (): EChartsOption => ({
-        legend: {
-            data: props.data.states.map((state) => state.name),
+export function ODEPlot(props: { data: ODEPlotData }) {
+  const options = (): EChartsOption => ({
+    legend: {
+      data: props.data.states.map((state) => state.name),
+    },
+    xAxis: {
+      name: "time",
+      data: props.data.time,
+      axisLabel: {
+        formatter: (_: string, i: number) => {
+          const x = props.data.time[i];
+          return x ? formatTimeLabel(x) : "";
         },
-        xAxis: {
-            name: "time",
-            data: props.data.time,
-            axisLabel: {
-                formatter: (_: string, i: number) => {
-                    const x = props.data.time[i];
-                    return x ? formatTimeLabel(x) : "";
-                },
-            },
-        },
-        yAxis: {
-            type: "value",
-        },
-        series: props.data.states.map((state) => ({
-            name: state.name,
-            data: state.data,
-            type: "line",
-            symbol: "none",
-        })),
-    });
+      },
+    },
+    yAxis: {
+      type: "value",
+    },
+    series: props.data.states.map((state) => ({
+      name: state.name,
+      data: state.data,
+      type: "line",
+      symbol: "none",
+      lineStyle: {
+        opacity: state.selected !== false ? 1.0 : 0.25,
+      },
+      itemStyle: {
+        opacity: state.selected !== false ? 1.0 : 0.25,
+      },
+    })),
+  });
 
-    return (
-        <div class="plot">
-            <ECharts option={options()} />
-        </div>
-    );
+  return (
+    <div class="plot">
+      <ECharts option={options()} />
+    </div>
+  );
 }
 
 const formatTimeLabel = (x: number): string => {
-    const label = x.toLocaleString(undefined, {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 1,
-    });
-    /// XXX: Hack to get some extra padding.
-    return ` ${label} `;
+  const label = x.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  });
+  /// XXX: Hack to get some extra padding.
+  return ` ${label} `;
 };

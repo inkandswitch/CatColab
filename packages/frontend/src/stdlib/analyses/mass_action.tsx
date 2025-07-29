@@ -1,4 +1,4 @@
-import { createMemo } from "solid-js";
+import { createMemo, createSignal } from "solid-js";
 
 import type {
   DblModel,
@@ -65,6 +65,14 @@ export function MassAction(
     title?: string;
   }
 ) {
+  // Scenario selection state
+  const scenarios = [
+    { id: "half", multiplier: 0.5, label: "Half rate" },
+    { id: "original", multiplier: 1.0, label: "Original rate" },
+    { id: "double", multiplier: 2.0, label: "Double rate" },
+  ];
+  const [selectedScenario, setSelectedScenario] = createSignal("original");
+
   const obDecls = createMemo<ObjectDecl[]>(() => {
     return props.liveModel
       .formalJudgments()
@@ -137,15 +145,8 @@ export function MassAction(
     const firstMorphismId = morphisms[0]!.id;
     const baseRate = props.content.rates[firstMorphismId] ?? 1;
 
-    // Create three variations: half, original, double
-    const variations = [
-      { multiplier: 0.5, label: "Half rate" },
-      { multiplier: 1.0, label: "Original rate" },
-      { multiplier: 2.0, label: "Double rate" },
-    ];
-
-    // Run simulations for all variations
-    const simulationResults = variations.map(({ multiplier, label }) => {
+    // Run simulations for all scenarios
+    const simulationResults = scenarios.map(({ id, multiplier, label }) => {
       const modifiedContent = {
         ...props.content,
         rates: {
@@ -155,7 +156,7 @@ export function MassAction(
       };
 
       const result = props.simulate(model, modifiedContent);
-      return { result, label, multiplier };
+      return { result, label, multiplier, id };
     });
 
     // Check if all simulations succeeded
@@ -176,18 +177,24 @@ export function MassAction(
       return firstResult as JsResult<ODEPlotData, string>;
 
     const obIndex = props.liveModel.objectIndex();
-    const combinedStates: Array<{ name: string; data: number[] }> = [];
+    const combinedStates: Array<{
+      name: string;
+      data: number[];
+      selected: boolean;
+    }> = [];
 
     // For each simulation result, add its states with scenario labels
-    for (const { result, label } of simulationResults) {
+    for (const { result, label, id } of simulationResults) {
       if (result.tag === "Ok") {
         const solution = result.content;
+        const isSelected = selectedScenario() === id;
         for (const [objectId, stateData] of solution.states.entries()) {
           const objectName = obIndex.map.get(objectId) ?? "";
           const scenarioStateName = `${objectName} (${label})`;
           combinedStates.push({
             name: scenarioStateName,
             data: stateData,
+            selected: isSelected,
           });
         }
       }
@@ -210,6 +217,18 @@ export function MassAction(
           <FixedTableEditor rows={[null]} schema={toplevelSchema} />
         </div>
       </Foldable>
+      <div class="scenario-selector">
+        {scenarios.map((scenario) => (
+          <button
+            class={`scenario-tab ${
+              selectedScenario() === scenario.id ? "active" : ""
+            }`}
+            onClick={() => setSelectedScenario(scenario.id)}
+          >
+            {scenario.label}
+          </button>
+        ))}
+      </div>
       <ODEResultPlot result={combinedPlotResult()} />
     </div>
   );

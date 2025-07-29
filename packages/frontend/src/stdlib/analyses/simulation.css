@@ -16,3 +16,39 @@
     width: 100%;
     height: 400px;
 }
+
+.scenario-selector {
+    display: flex;
+    gap: 0.5em;
+    margin: 1em 0;
+    padding-bottom: 1em;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.scenario-tab {
+    padding: 0.5em 1em;
+    border: 1px solid #d0d0d0;
+    border-radius: 20px;
+    background-color: #f8f8f8;
+    color: #666;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.scenario-tab:hover {
+    background-color: #e8e8e8;
+    border-color: #b0b0b0;
+}
+
+.scenario-tab.active {
+    background-color: #007acc;
+    color: white;
+    border-color: #005a99;
+}
+
+.scenario-tab.active:hover {
+    background-color: #0066b3;
+}
