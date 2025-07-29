@@ -1,6 +1,5 @@
 .annotation {
   position: relative;
-  width: fit-content;
 }
 
 .annotation::before {
@@ -15,11 +14,13 @@
 }
 
 .annotation-added {
-  background-color: #f0fdf4;
+  border-left: 3px solid #68c58a;
+  background-color: #d4ffe1;
 }
 
 .annotation-changed {
-  background-color: #fefce8;
+  border-left: 3px solid #f8b62e;
+  background-color: #ffefc0;
 }
 
 .annotation-deleted {
