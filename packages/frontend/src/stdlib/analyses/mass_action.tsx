@@ -2,6 +2,7 @@ import { createMemo } from "solid-js";
 
 import type {
   DblModel,
+  JsResult,
   MassActionModelData,
   MassActionProblemData,
   ODEResult,
@@ -15,7 +16,7 @@ import {
 } from "../../components";
 import type { MorphismDecl, ObjectDecl } from "../../model";
 import type { ModelAnalysisMeta } from "../../theory";
-import { ODEResultPlot } from "../../visualization";
+import { ODEResultPlot, type ODEPlotData } from "../../visualization";
 import { createModelODEPlot } from "./simulation";
 
 import "./simulation.css";
@@ -125,13 +126,13 @@ export function MassAction(
     }),
   ];
 
-  const plotResults = createMemo(() => {
+  const combinedPlotResult = createMemo(() => {
     const validated = props.liveModel.validatedModel();
-    if (!validated || validated.result.tag !== "Ok") return [];
+    if (!validated || validated.result.tag !== "Ok") return undefined;
 
     const model = validated.model;
     const morphisms = morDecls();
-    if (morphisms.length === 0) return [];
+    if (morphisms.length === 0) return undefined;
 
     const firstMorphismId = morphisms[0]!.id;
     const baseRate = props.content.rates[firstMorphismId] ?? 1;
@@ -143,32 +144,61 @@ export function MassAction(
       { multiplier: 2.0, label: "Double rate" },
     ];
 
-    return variations
-      .map(({ multiplier, label }) => {
-        // Create modified content with adjusted rate
-        const modifiedContent = {
-          ...props.content,
-          rates: {
-            ...props.content.rates,
-            [firstMorphismId]: baseRate * multiplier,
-          },
-        };
+    // Run simulations for all variations
+    const simulationResults = variations.map(({ multiplier, label }) => {
+      const modifiedContent = {
+        ...props.content,
+        rates: {
+          ...props.content.rates,
+          [firstMorphismId]: baseRate * multiplier,
+        },
+      };
 
-        // Use createModelODEPlot to properly transform the result
-        const plotMemo = createModelODEPlot(
-          () => props.liveModel,
-          (model) => props.simulate(model, modifiedContent)
-        );
+      const result = props.simulate(model, modifiedContent);
+      return { result, label, multiplier };
+    });
 
-        const result = plotMemo();
-        return {
-          result,
-          label,
-          multiplier,
-          hasValidResult: result !== undefined,
-        };
-      })
-      .filter((plotData) => plotData.hasValidResult);
+    // Check if all simulations succeeded
+    const allSuccessful = simulationResults.every(
+      ({ result }) => result.tag === "Ok"
+    );
+    if (!allSuccessful) {
+      // Return first error found
+      const firstError = simulationResults.find(
+        ({ result }) => result.tag === "Err"
+      );
+      return firstError?.result as JsResult<ODEPlotData, string>;
+    }
+
+    // Combine all successful results into one plot data structure
+    const firstResult = simulationResults[0]!.result;
+    if (firstResult.tag !== "Ok")
+      return firstResult as JsResult<ODEPlotData, string>;
+
+    const obIndex = props.liveModel.objectIndex();
+    const combinedStates: Array<{ name: string; data: number[] }> = [];
+
+    // For each simulation result, add its states with scenario labels
+    for (const { result, label } of simulationResults) {
+      if (result.tag === "Ok") {
+        const solution = result.content;
+        for (const [objectId, stateData] of solution.states.entries()) {
+          const objectName = obIndex.map.get(objectId) ?? "";
+          const scenarioStateName = `${objectName} (${label})`;
+          combinedStates.push({
+            name: scenarioStateName,
+            data: stateData,
+          });
+        }
+      }
+    }
+
+    const content: ODEPlotData = {
+      time: firstResult.content.time,
+      states: combinedStates,
+    };
+
+    return { tag: "Ok" as const, content };
   });
 
   return (
@@ -180,16 +210,7 @@ export function MassAction(
           <FixedTableEditor rows={[null]} schema={toplevelSchema} />
         </div>
       </Foldable>
-      <div class="simulation-plots">
-        {plotResults().map((plotData, index) => (
-          <div class="simulation-plot">
-            <h4>
-              {plotData.label} (×{plotData.multiplier})
-            </h4>
-            <ODEResultPlot result={plotData.result!} />
-          </div>
-        ))}
-      </div>
+      <ODEResultPlot result={combinedPlotResult()} />
     </div>
   );
 }
