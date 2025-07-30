@@ -72,6 +72,9 @@ export type CellActions = {
 
     // The cell has received focus.
     hasFocused: () => void;
+
+    // Add a comment to the cell.
+    addComment: () => void;
 };
 
 const cellDragDataKey = Symbol("notebook-cell");
@@ -147,7 +150,7 @@ export function NotebookCell(props: {
         {
             name: "Add Comment",
             icon: <MessageCircle size={16} />,
-            onComplete: () => console.log("add comment"),
+            onComplete: props.actions.addComment,
         },
     ];
 

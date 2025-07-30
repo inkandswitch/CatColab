@@ -2,6 +2,7 @@ import { Cell, Uuid } from "catlog-wasm";
 import {
     CellAnnotationsViewProps,
     CellAnnotationsViewWrapper,
+    CellPointer,
     patchesToAnnotation,
 } from "./annotations";
 import { AnnotationsViewProps } from "@patchwork/sdk/annotations";
@@ -179,5 +180,7 @@ export const plugin: AnnotationsPluginImplementation<
     Cell<unknown>
 > = {
     patchesToAnnotation: patchesToAnnotation<ModelDoc>,
+    targetToPointer: (doc, target): CellPointer<ModelDoc> =>
+        new CellPointer<ModelDoc>(doc, target),
     AnnotationsView,
 };

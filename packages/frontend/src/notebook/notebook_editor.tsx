@@ -238,7 +238,7 @@ export function NotebookEditor<T>(props: {
         onCleanup(cleanup);
     });
 
-    const { annotations } = useAnnotationsOfDoc(props.handle.url);
+    const { annotations, addComment } = useAnnotationsOfDoc(props.handle.url);
 
     return (
         <div class="notebook">
@@ -339,6 +339,9 @@ export function NotebookEditor<T>(props: {
                             },
                             hasFocused() {
                                 setActiveCell(i());
+                            },
+                            addComment() {
+                                addComment([cellPointer]);
                             },
                         };
 

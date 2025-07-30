@@ -125,16 +125,21 @@ const Tool: React.FC<
     const solidDisposeRef = useRef<(() => void) | null>(null);
 
     const [getAnnotationsContextValue, setAnnotationsContextValue] = useMemo(
-        () =>
-            createSignal<ReturnType<typeof useAllAnnotations>>({
-                docLinksWithAnnotations: [],
-                setSelection: () => {},
-            }),
+        () => createSignal<ReturnType<typeof useAllAnnotations> | null>(null),
         []
     );
 
+    // update annoations context whenever it changes
     useEffect(() => {
-        if (!handle || !repo) {
+        if (allAnnotations) {
+            setAnnotationsContextValue(allAnnotations);
+        }
+    }, [allAnnotations]);
+
+    // mount the solid component once the handle and repo are available
+    useEffect(() => {
+        if (!handle || !repo || !allAnnotations) {
+            setAnnotationsContextValue(null);
             return;
         }
 
@@ -149,7 +154,8 @@ const Tool: React.FC<
                     createComponent(solidComponent, {
                         docUrl,
                         repo,
-                        annotationsContextValue: getAnnotationsContextValue,
+                        annotationsContextValue: () =>
+                            getAnnotationsContextValue()!,
                     }),
                 solidContainerRef.current
             );
@@ -162,11 +168,7 @@ const Tool: React.FC<
                 solidDisposeRef.current = null;
             }
         };
-    }, [docUrl, handle, solidComponent]);
-
-    useEffect(() => {
-        setAnnotationsContextValue(allAnnotations || []);
-    }, [allAnnotations]);
+    }, [docUrl, handle, solidComponent, allAnnotations]);
 
     if (!handle) {
         return null;

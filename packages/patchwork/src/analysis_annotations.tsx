@@ -13,6 +13,7 @@ import { AnalysisDoc } from "./analysis_datatype";
 import {
     CellAnnotationsViewProps,
     CellAnnotationsViewWrapper,
+    CellPointer,
     patchesToAnnotation,
 } from "./annotations";
 
@@ -159,5 +160,7 @@ export const plugin: AnnotationsPluginImplementation<
     Cell<unknown>
 > = {
     patchesToAnnotation: patchesToAnnotation<AnalysisDoc>,
+    targetToPointer: (doc, target): CellPointer<AnalysisDoc> =>
+        new CellPointer<AnalysisDoc>(doc, target),
     AnnotationsView,
 };

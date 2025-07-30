@@ -1,11 +1,12 @@
-import { Accessor, createContext, useContext } from "solid-js";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import type {
     Annotation,
     AnnotationWithUIState,
-    DocLinkWithAnnotations,
+    Comment,
     Pointer,
+    useAllAnnotations,
 } from "@patchwork/sdk/annotations";
+import { Accessor, createContext, useContext } from "solid-js";
 
 export type DocUrlWithAnnotations = {
     originalUrl: AutomergeUrl;
@@ -13,18 +14,16 @@ export type DocUrlWithAnnotations = {
     annotations: Annotation[];
 };
 
-export const AnnotationsContext = createContext<
-    Accessor<{
-        docLinksWithAnnotations: DocLinkWithAnnotations[];
-        setSelection: (docUrl: AutomergeUrl, pointers: Pointer[]) => void;
-    }>
->();
+export const AnnotationsContext =
+    createContext<Accessor<ReturnType<typeof useAllAnnotations>>>();
 
 export const useAnnotationsOfDoc = <D, T, V>(
     docUrl: AutomergeUrl
 ): {
     annotations: Accessor<AnnotationWithUIState<D, T, V>[]>;
+    selection: Accessor<Pointer<D, T, V>[]>;
     setSelection: (pointers: Pointer<D, T, V>[]) => void;
+    addComment: (pointers: Pointer<D, T, V>[]) => Promise<Comment>;
 } => {
     const context = useContext(AnnotationsContext);
     if (!context) {
@@ -42,7 +41,22 @@ export const useAnnotationsOfDoc = <D, T, V>(
     return {
         annotations,
         setSelection: (pointers: Pointer<D, T, V>[]) => {
-            context().setSelection(docUrl, pointers);
+            context().setSelection(
+                pointers.map((pointer) => ({ ...pointer, docUrl }))
+            );
+        },
+        selection: () => {
+            return context()
+                .selection.filter((pointer) => pointer.docUrl === docUrl)
+                .map((pointer) => {
+                    const { docUrl, ...rest } = pointer;
+                    return rest as Pointer<D, T, V>;
+                });
+        },
+        addComment: (pointers: Pointer<D, T, V>[]): Promise<Comment> => {
+            return context().addComment(
+                pointers.map((pointer) => ({ ...pointer, docUrl }))
+            );
         },
     };
 };
