@@ -2,8 +2,6 @@ import { type Plugin } from "@patchwork/sdk/plugins";
 import { stockFlowAIPrompt } from "./ai-prompt";
 import { LoadableAnnotationPlugin } from "@patchwork/sdk/annotations";
 
-import "./index.css";
-
 export const plugins: Plugin<any>[] = [
     {
         type: "patchwork:dataType",

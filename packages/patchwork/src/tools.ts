@@ -177,5 +177,8 @@ const Tool: React.FC<
 
     // We use React.createElement here to avoid bringing in React's JSX transform.
     // We had some trouble with combining both solid and react JSX in one build.
-    return React.createElement("div", { ref: solidContainerRef });
+    return React.createElement("div", {
+        className: "catcolab-patchwork",
+        ref: solidContainerRef,
+    });
 };
