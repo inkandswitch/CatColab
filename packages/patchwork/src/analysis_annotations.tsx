@@ -1,7 +1,7 @@
 import { AnnotationsViewProps } from "@patchwork/sdk/annotations";
 import { Cell, Uuid } from "catlog-wasm";
 import React from "react";
-import { Component, createResource, For, Show, Switch } from "solid-js";
+import { Component, createResource, For, Show } from "solid-js";
 import { AnnotationsPluginImplementation } from "../../../../patchwork/sdk/dist/annotations/types";
 import { AnalysisCellEditor } from "../../frontend/src/analysis/analysis_editor";
 import { LiveAnalysisContext } from "../../frontend/src/analysis/context";
@@ -138,6 +138,41 @@ function CellAnnotationsView(props: CellAnnotationsViewProps) {
                                                                         }
                                                                     />
                                                                 </div>
+                                                            </div>
+                                                        );
+
+                                                    case "comment":
+                                                        if (
+                                                            props.annotations.some(
+                                                                (annotation) =>
+                                                                    annotation.type !==
+                                                                    "comment"
+                                                            )
+                                                        ) {
+                                                            return null;
+                                                        }
+
+                                                        return (
+                                                            <div class="annotation">
+                                                                <For
+                                                                    each={
+                                                                        annotation
+                                                                            .discussion
+                                                                            .pointers
+                                                                    }
+                                                                >
+                                                                    {(
+                                                                        pointer
+                                                                    ) => (
+                                                                        <div class="annotation">
+                                                                            <CellView
+                                                                                cell={
+                                                                                    pointer.value as Cell<unknown>
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                    )}
+                                                                </For>
                                                             </div>
                                                         );
                                                 }

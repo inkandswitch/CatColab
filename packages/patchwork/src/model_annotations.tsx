@@ -14,7 +14,10 @@ import { stdTheories, TheoryLibraryContext } from "../../frontend/src/stdlib";
 import { ApiContext } from "../../frontend/src/api";
 import { ModelCellEditor } from "../../frontend/src/model/model_editor";
 import { CellActions, FormalCell } from "../../frontend/src/notebook";
-import { AnnotationsPluginImplementation } from "../../../../patchwork/sdk/dist/annotations/types";
+import {
+    AnnotationsPluginImplementation,
+    CommentAnnotation,
+} from "../../../../patchwork/sdk/dist/annotations/types";
 
 export function AnnotationsView({
     annotations,
@@ -79,6 +82,8 @@ function CellAnnotationsView(props: CellAnnotationsViewProps) {
             }
         }
     );
+
+    console.log("annotations view", props);
 
     return (
         <div>
@@ -158,6 +163,40 @@ function CellAnnotationsView(props: CellAnnotationsViewProps) {
                                                                         }
                                                                     />
                                                                 </div>
+                                                            </div>
+                                                        );
+                                                    case "comment":
+                                                        if (
+                                                            props.annotations.some(
+                                                                (annotation) =>
+                                                                    annotation.type !==
+                                                                    "comment"
+                                                            )
+                                                        ) {
+                                                            return null;
+                                                        }
+
+                                                        return (
+                                                            <div class="annotation">
+                                                                <For
+                                                                    each={
+                                                                        annotation
+                                                                            .discussion
+                                                                            .pointers
+                                                                    }
+                                                                >
+                                                                    {(
+                                                                        pointer
+                                                                    ) => (
+                                                                        <div class="annotation">
+                                                                            <CellView
+                                                                                cell={
+                                                                                    pointer.value as Cell<unknown>
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                    )}
+                                                                </For>
                                                             </div>
                                                         );
                                                 }
