@@ -8,7 +8,7 @@ import {
     Repo,
 } from "@automerge/automerge-repo";
 import { type Accessor, createEffect, createSignal } from "solid-js";
-import { createStore } from "solid-js/store";
+import { createStore, reconcile } from "solid-js/store";
 import invariant from "tiny-invariant";
 import * as uuid from "uuid";
 
@@ -93,11 +93,11 @@ export async function makeDocHandleReactive<T extends object>(
         // Use [`reconcile`](https://www.solidjs.com/tutorial/stores_immutable)
         // function to diff the data and thus avoid re-rendering the whole DOM.
 
-        // setStore(reconcile(payload.doc));
+        setStore(reconcile(payload.doc));
 
         // todo: using reconcile leads to corrupt state when switching branches
         // rerendering every time seems fine
-        setStore(payload.doc);
+        // setStore(payload.doc);
     };
 
     handle.on("change", onChange);
