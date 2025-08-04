@@ -138,8 +138,9 @@ const Tool: React.FC<
 
     // mount the solid component once the handle and repo are available
     useEffect(() => {
-        if (!handle || !repo || !allAnnotations) {
-            setAnnotationsContextValue(null);
+        const annotationContextValue = getAnnotationsContextValue();
+
+        if (!handle || !repo || !annotationContextValue) {
             return;
         }
 
@@ -168,7 +169,7 @@ const Tool: React.FC<
                 solidDisposeRef.current = null;
             }
         };
-    }, [docUrl, handle, solidComponent, allAnnotations]);
+    }, [docUrl, handle, solidComponent]);
 
     if (!handle) {
         return null;
