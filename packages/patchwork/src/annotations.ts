@@ -50,10 +50,27 @@ export const patchesToAnnotation = <D extends ModelDoc | AnalysisDoc>(
         switch (patch.action) {
             case "del": {
                 const cellId = docBefore.notebook.cells[cellIndex].id;
-                annotations.push({
-                    type: "deleted",
-                    pointer: new CellPointer(docBefore, cellId),
-                });
+                const cellAfter = docAfter.notebook.cells.find(
+                    (cell) => cell.id === cellId
+                );
+
+                if (cellAfter) {
+                    if (changedCellIds.has(cellId)) {
+                        break;
+                    }
+
+                    changedCellIds.add(cellId);
+                    annotations.push({
+                        type: "changed",
+                        before: new CellPointer(docBefore, cellId),
+                        after: new CellPointer(docAfter, cellId),
+                    });
+                } else {
+                    annotations.push({
+                        type: "deleted",
+                        pointer: new CellPointer(docBefore, cellId),
+                    });
+                }
                 break;
             }
 
