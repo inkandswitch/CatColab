@@ -56,6 +56,8 @@ export const patchesToAnnotation = <D extends ModelDoc | AnalysisDoc>(
                 });
                 break;
             }
+
+            case "splice":
             case "put": {
                 const cellId = docAfter.notebook.cells[cellIndex].id;
                 const cellBefore = docBefore.notebook.cells.find(

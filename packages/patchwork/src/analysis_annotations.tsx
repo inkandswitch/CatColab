@@ -1,13 +1,13 @@
 import { AnnotationsViewProps } from "@patchwork/sdk/annotations";
 import { Cell, Uuid } from "catlog-wasm";
 import React from "react";
-import { Component, createResource, For, Show } from "solid-js";
+import { Component, createResource, For, Match, Show, Switch } from "solid-js";
 import { AnnotationsPluginImplementation } from "../../../../patchwork/sdk/dist/annotations/types";
 import { AnalysisCellEditor } from "../../frontend/src/analysis/analysis_editor";
 import { LiveAnalysisContext } from "../../frontend/src/analysis/context";
 import { getLiveAnalysis } from "../../frontend/src/analysis/document";
 import { ApiContext } from "../../frontend/src/api";
-import { CellActions } from "../../frontend/src/notebook";
+import { CellActions, RichTextCell } from "../../frontend/src/notebook";
 import { stdTheories, TheoryLibraryContext } from "../../frontend/src/stdlib";
 import { AnalysisDoc } from "./analysis_datatype";
 import {
@@ -32,12 +32,19 @@ const CellView: Component<{
     cell: Cell<unknown>;
 }> = ({ cell }) => {
     return (
-        <AnalysisCellEditor
-            content={cell.content}
-            changeContent={() => {}}
-            isActive={false}
-            actions={{} as CellActions}
-        />
+        <Switch>
+            <Match when={cell.tag === "rich-text"}>
+                <div>{(cell as RichTextCell).content}</div>
+            </Match>
+            <Match when={cell.tag === "formal"}>
+                <AnalysisCellEditor
+                    content={cell.content}
+                    changeContent={() => {}}
+                    isActive={false}
+                    actions={{} as CellActions}
+                />
+            </Match>
+        </Switch>
     );
 };
 

@@ -1,23 +1,24 @@
+import { AnnotationsViewProps } from "@patchwork/sdk/annotations";
 import { Cell, Uuid } from "catlog-wasm";
+import React from "react";
+import { Component, createResource, For, Match, Show, Switch } from "solid-js";
+import { AnnotationsPluginImplementation } from "../../../../patchwork/sdk/dist/annotations/types";
+import { ApiContext } from "../../frontend/src/api";
+import { getLiveModel, LiveModelContext } from "../../frontend/src/model";
+import { ModelCellEditor } from "../../frontend/src/model/model_editor";
+import {
+    CellActions,
+    FormalCell,
+    RichTextCell,
+} from "../../frontend/src/notebook";
+import { stdTheories, TheoryLibraryContext } from "../../frontend/src/stdlib";
 import {
     CellAnnotationsViewProps,
     CellAnnotationsViewWrapper,
     CellPointer,
     patchesToAnnotation,
 } from "./annotations";
-import { AnnotationsViewProps } from "@patchwork/sdk/annotations";
 import { ModelDoc } from "./model_datatype";
-import React from "react";
-import { Component, createResource, For, Match, Show, Switch } from "solid-js";
-import { getLiveModel, LiveModelContext } from "../../frontend/src/model";
-import { stdTheories, TheoryLibraryContext } from "../../frontend/src/stdlib";
-import { ApiContext } from "../../frontend/src/api";
-import { ModelCellEditor } from "../../frontend/src/model/model_editor";
-import { CellActions, FormalCell } from "../../frontend/src/notebook";
-import {
-    AnnotationsPluginImplementation,
-    CommentAnnotation,
-} from "../../../../patchwork/sdk/dist/annotations/types";
 
 export function AnnotationsView({
     annotations,
@@ -36,22 +37,7 @@ const CellView: Component<{
     return (
         <Switch>
             <Match when={cell.tag === "rich-text"}>
-                Rich text cell
-                {/*<RichTextCellEditor
-                  cellId={cell.id}
-                  handle={
-                      props.handle
-                  }
-                  path={[
-                      ...props.path,
-                      "cells",
-                      i(),
-                  ]}
-                  isActive={isActive()}
-                  actions={
-                      cellActions
-                  }
-              />*/}
+                <div>{(cell as RichTextCell).content}</div>
             </Match>
             <Match when={cell.tag === "formal"}>
                 <ModelCellEditor
