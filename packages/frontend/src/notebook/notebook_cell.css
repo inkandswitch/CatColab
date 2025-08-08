@@ -9,7 +9,7 @@
 
 .cell.cell-added {
     border-left: 3px solid #68c58a;
-    background-color: #d4ffe1;
+    background-color: #d4ffe14f;
     margin-left: 0px;
     padding-left: 4px;
 }
@@ -20,7 +20,7 @@
 
 .cell.cell-changed {
     border-left: 3px solid #f8b62e;
-    background-color: #ffefc0;
+    background-color: #ffefc078;
     margin-left: 0px;
     padding-left: 4px;
 }

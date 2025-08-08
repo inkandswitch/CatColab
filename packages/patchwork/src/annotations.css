@@ -17,12 +17,12 @@
 
 .annotation-added {
   border-left: 3px solid #68c58a;
-  background-color: #d4ffe1;
+  background-color: #d4ffe14f;
 }
 
 .annotation-changed {
   border-left: 3px solid #f8b62e;
-  background-color: #ffefc0;
+  background-color: #ffefc078;
 }
 
 .annotation-deleted {
