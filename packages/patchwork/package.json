@@ -10,6 +10,7 @@
     "scripts": {
         "build": "vite build",
         "push": "pnpm build && patchwork push",
+        "format": "biome format --write",
         "watch": "nodemon --watch src -e js,tsx,ts,tsx,css,json --exec 'pnpm build && pnpm push'"
     },
     "keywords": [],
@@ -29,6 +30,7 @@
         "uuid": "^11.0.3"
     },
     "devDependencies": {
+        "@biomejs/biome": "^1.9.3",
         "@tailwindcss/vite": "^4.0.9",
         "@types/react": "^18.3.3",
         "@types/uuid": "^10.0.0",
