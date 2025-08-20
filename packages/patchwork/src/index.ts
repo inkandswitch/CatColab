@@ -1,6 +1,6 @@
-import { type Plugin } from "@patchwork/sdk/plugins";
+import type { Plugin } from "@patchwork/sdk/plugins";
 import { stockFlowAIPrompt } from "./ai-prompt";
-import { LoadableAnnotationPlugin } from "@patchwork/sdk/annotations";
+import type { LoadableAnnotationPlugin } from "@patchwork/sdk/annotations";
 
 export const plugins: Plugin<any>[] = [
     {

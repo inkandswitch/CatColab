@@ -35,9 +35,7 @@ export function HamburgerMenu(props: {
                 <MenuIcon />
             </DropdownMenu.Trigger>
             <DropdownMenu.Portal>
-                <DropdownMenu.Content class="menu popup">
-                    {props.children}
-                </DropdownMenu.Content>
+                <DropdownMenu.Content class="menu popup">{props.children}</DropdownMenu.Content>
             </DropdownMenu.Portal>
         </DropdownMenu>
     );

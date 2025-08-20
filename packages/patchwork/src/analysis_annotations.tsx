@@ -1,17 +1,16 @@
-import { AnnotationsViewProps } from "@patchwork/sdk/annotations";
-import { Cell, Uuid } from "catlog-wasm";
-import React from "react";
-import { Component, createResource, For, Match, Show, Switch } from "solid-js";
-import { AnnotationsPluginImplementation } from "../../../../patchwork/sdk/dist/annotations/types";
+import type { AnnotationsViewProps } from "@patchwork/sdk/annotations";
+import type { Cell, Uuid } from "catlog-wasm";
+import { type Component, createResource, For, Match, Show, Switch } from "solid-js";
+import type { AnnotationsPluginImplementation } from "../../../../patchwork/sdk/dist/annotations/types";
 import { AnalysisCellEditor } from "../../frontend/src/analysis/analysis_editor";
 import { LiveAnalysisContext } from "../../frontend/src/analysis/context";
 import { getLiveAnalysis } from "../../frontend/src/analysis/document";
 import { ApiContext } from "../../frontend/src/api";
-import { CellActions, RichTextCell } from "../../frontend/src/notebook";
+import type { CellActions, RichTextCell } from "../../frontend/src/notebook";
 import { stdTheories, TheoryLibraryContext } from "../../frontend/src/stdlib";
-import { AnalysisDoc } from "./analysis_datatype";
+import type { AnalysisDoc } from "./analysis_datatype";
 import {
-    CellAnnotationsViewProps,
+    type CellAnnotationsViewProps,
     CellAnnotationsViewWrapper,
     CellPointer,
     patchesToAnnotation,
@@ -60,7 +59,7 @@ function CellAnnotationsView(props: CellAnnotationsViewProps) {
             } catch (error) {
                 throw error;
             }
-        }
+        },
     );
 
     return (
@@ -71,26 +70,15 @@ function CellAnnotationsView(props: CellAnnotationsViewProps) {
                 </Show>
                 <Show when={liveAnalysis.error}>
                     <div>
-                        ❌ Error loading model:{" "}
-                        {liveAnalysis.error?.message || "Unknown error"}
+                        ❌ Error loading model: {liveAnalysis.error?.message || "Unknown error"}
                     </div>
                 </Show>
-                <Show
-                    when={
-                        liveAnalysis() &&
-                        !liveAnalysis.loading &&
-                        !liveAnalysis.error
-                    }
-                >
+                <Show when={liveAnalysis() && !liveAnalysis.loading && !liveAnalysis.error}>
                     {(_) => {
                         return (
                             <ApiContext.Provider value={api}>
-                                <TheoryLibraryContext.Provider
-                                    value={stdTheories}
-                                >
-                                    <LiveAnalysisContext.Provider
-                                        value={() => liveAnalysis()!}
-                                    >
+                                <TheoryLibraryContext.Provider value={stdTheories}>
+                                    <LiveAnalysisContext.Provider value={() => liveAnalysis()!}>
                                         <For each={props.annotations}>
                                             {(annotation) => {
                                                 switch (annotation.type) {
@@ -98,11 +86,7 @@ function CellAnnotationsView(props: CellAnnotationsViewProps) {
                                                         return (
                                                             <div class="annotation annotation-added">
                                                                 <CellView
-                                                                    cell={
-                                                                        annotation
-                                                                            .pointer
-                                                                            .value
-                                                                    }
+                                                                    cell={annotation.pointer.value}
                                                                 />
                                                             </div>
                                                         );
@@ -110,11 +94,7 @@ function CellAnnotationsView(props: CellAnnotationsViewProps) {
                                                         return (
                                                             <div class="annotation annotation-deleted">
                                                                 <CellView
-                                                                    cell={
-                                                                        annotation
-                                                                            .pointer
-                                                                            .value
-                                                                    }
+                                                                    cell={annotation.pointer.value}
                                                                 />
                                                             </div>
                                                         );
@@ -127,9 +107,7 @@ function CellAnnotationsView(props: CellAnnotationsViewProps) {
                                                                 <div class="annotation">
                                                                     <CellView
                                                                         cell={
-                                                                            annotation
-                                                                                .before
-                                                                                .value
+                                                                            annotation.before.value
                                                                         }
                                                                     />
                                                                 </div>
@@ -139,9 +117,7 @@ function CellAnnotationsView(props: CellAnnotationsViewProps) {
                                                                 <div class="annotation annotation-changed">
                                                                     <CellView
                                                                         cell={
-                                                                            annotation
-                                                                                .after
-                                                                                .value
+                                                                            annotation.after.value
                                                                         }
                                                                     />
                                                                 </div>
@@ -152,8 +128,7 @@ function CellAnnotationsView(props: CellAnnotationsViewProps) {
                                                         if (
                                                             props.annotations.some(
                                                                 (annotation) =>
-                                                                    annotation.type !==
-                                                                    "comment"
+                                                                    annotation.type !== "comment",
                                                             )
                                                         ) {
                                                             return null;
@@ -163,14 +138,11 @@ function CellAnnotationsView(props: CellAnnotationsViewProps) {
                                                             <div class="annotation">
                                                                 <For
                                                                     each={
-                                                                        annotation
-                                                                            .discussion
+                                                                        annotation.discussion
                                                                             .pointers
                                                                     }
                                                                 >
-                                                                    {(
-                                                                        pointer
-                                                                    ) => (
+                                                                    {(pointer) => (
                                                                         <div class="annotation">
                                                                             <CellView
                                                                                 cell={
@@ -196,11 +168,7 @@ function CellAnnotationsView(props: CellAnnotationsViewProps) {
     );
 }
 
-export const plugin: AnnotationsPluginImplementation<
-    AnalysisDoc,
-    Uuid,
-    Cell<unknown>
-> = {
+export const plugin: AnnotationsPluginImplementation<AnalysisDoc, Uuid, Cell<unknown>> = {
     patchesToAnnotation: patchesToAnnotation<AnalysisDoc>,
     targetToPointer: (doc, target): CellPointer<AnalysisDoc> =>
         new CellPointer<AnalysisDoc>(doc, target),

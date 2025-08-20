@@ -9,13 +9,7 @@ import { EXTERNAL_DEPENDENCIES } from "@patchwork/sdk/shared-dependencies";
 
 export default defineConfig({
     base: "./",
-    plugins: [
-        topLevelAwait(),
-        wasm(),
-        solid(),
-        tailwindcss(),
-        cssInjectedByJsPlugin(),
-    ],
+    plugins: [topLevelAwait(), wasm(), solid(), tailwindcss(), cssInjectedByJsPlugin()],
 
     build: {
         minify: false,

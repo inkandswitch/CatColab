@@ -65,7 +65,7 @@ export type ValidatedDiagram = {
 function enlivenDiagramDocument(
     refId: string,
     liveDoc: LiveDoc<DiagramDocument>,
-    liveModel: LiveModelDocument
+    liveModel: LiveModelDocument,
 ): LiveDiagramDocument {
     const { doc } = liveDoc;
 
@@ -116,7 +116,7 @@ function enlivenDiagramDocument(
             return { diagram, result };
         },
         undefined,
-        { equals: false }
+        { equals: false },
     );
 
     return {
@@ -137,13 +137,8 @@ export function createDiagram(api: Api, inModel: StableRef): Promise<string> {
 }
 
 /** Create a new diagram in the backend from initial data. */
-export async function createDiagramFromDocument(
-    api: Api,
-    init: DiagramDocument
-): Promise<string> {
-    const result = await api.rpc.new_ref.mutate(
-        init as InterfaceToType<DiagramDocument>
-    );
+export async function createDiagramFromDocument(api: Api, init: DiagramDocument): Promise<string> {
+    const result = await api.rpc.new_ref.mutate(init as InterfaceToType<DiagramDocument>);
     invariant(result.tag === "Ok", "Failed to create a new diagram");
     return result.content;
 }
@@ -152,7 +147,7 @@ export async function createDiagramFromDocument(
 export async function getLiveDiagram(
     refId: string,
     api: Api,
-    theories: TheoryLibrary
+    theories: TheoryLibrary,
 ): Promise<LiveDiagramDocument> {
     const liveDoc = await getLiveDoc<DiagramDocument>(api, refId, "diagram");
     const { doc } = liveDoc;

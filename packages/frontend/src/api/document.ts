@@ -56,12 +56,9 @@ and upgrade it to the latest version.
 export async function getLiveDoc<Doc extends Document>(
     api: Api,
     refId: AutomergeUrl,
-    docType?: string
+    docType?: string,
 ): Promise<LiveDoc<Doc>> {
-    invariant(
-        isValidAutomergeUrl(refId),
-        () => `Invalid document ref ${refId}`
-    );
+    invariant(isValidAutomergeUrl(refId), () => `Invalid document ref ${refId}`);
     const { repo } = api;
 
     let docHandle = await repo.find<Doc>(refId);
@@ -70,7 +67,7 @@ export async function getLiveDoc<Doc extends Document>(
     if (docType !== undefined) {
         invariant(
             doc.type === docType,
-            () => `Expected document of type ${docType}, got ${doc.type}`
+            () => `Expected document of type ${docType}, got ${doc.type}`,
         );
     }
 
@@ -82,9 +79,7 @@ export async function getLiveDoc<Doc extends Document>(
 
 /** Create a Solid Store that tracks an Automerge document.
  */
-export async function makeDocHandleReactive<T extends object>(
-    handle: DocHandle<T>
-): Promise<T> {
+export async function makeDocHandleReactive<T extends object>(handle: DocHandle<T>): Promise<T> {
     const init = handle.doc();
 
     const [store, setStore] = createStore<T>(init as T);
@@ -107,9 +102,7 @@ export async function makeDocHandleReactive<T extends object>(
 
 /** Create a boolean signal for whether an Automerge document handle is ready.
  */
-export function useDocHandleReady(
-    getHandle: () => DocHandle<unknown>
-): Accessor<boolean> {
+export function useDocHandleReady(getHandle: () => DocHandle<unknown>): Accessor<boolean> {
     const [isReady, setIsReady] = createSignal<boolean>(false);
 
     createEffect(() => {

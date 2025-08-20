@@ -13,20 +13,9 @@ import {
 import { createStore, produce } from "solid-js/store";
 import invariant from "tiny-invariant";
 
-import type {
-    NewPermissions,
-    PermissionLevel,
-    Permissions,
-    UserSummary,
-} from "catcolab-api";
+import type { NewPermissions, PermissionLevel, Permissions, UserSummary } from "catcolab-api";
 import { useApi } from "../api";
-import {
-    Dialog,
-    FormGroup,
-    IconButton,
-    SelectField,
-    Warning,
-} from "../components";
+import { Dialog, FormGroup, IconButton, SelectField, Warning } from "../components";
 import { deepCopyJSON } from "../util/deepcopy";
 import { Login } from "./login";
 import { NameUser, UserInput } from "./username";
@@ -71,7 +60,7 @@ export function PermissionsForm(props: {
             const result = await api.rpc.get_permissions.query(refId);
             invariant(result.tag === "Ok");
             return result.content;
-        }
+        },
     );
 
     createEffect(() => {
@@ -82,31 +71,21 @@ export function PermissionsForm(props: {
     });
 
     const addEntry = (user: UserSummary) => {
-        if (
-            !state.users ||
-            state.users.some((perm) => perm.user.id === user.id)
-        ) {
+        if (!state.users || state.users.some((perm) => perm.user.id === user.id)) {
             return;
         }
-        setState(
-            produce((state) => state.users?.push({ user, level: "Read" }))
-        );
+        setState(produce((state) => state.users?.push({ user, level: "Read" })));
     };
 
     const willAddOwners = (): boolean =>
         state.users?.some(
-            (perm, i) =>
-                perm.level === "Own" &&
-                currentPermissions()?.users?.[i]?.level !== "Own"
+            (perm, i) => perm.level === "Own" && currentPermissions()?.users?.[i]?.level !== "Own",
         ) ?? false;
 
     const updatePermissions = async () => {
         invariant(props.refId);
         invariant(!currentPermissions.loading && !currentPermissions.error);
-        const result = await api.rpc.set_permissions.mutate(
-            props.refId,
-            pendingPermissions()
-        );
+        const result = await api.rpc.set_permissions.mutate(props.refId, pendingPermissions());
         invariant(result.tag === "Ok");
     };
 
@@ -134,20 +113,11 @@ export function PermissionsForm(props: {
                     <option value="Write">Anyone can edit</option>
                 </SelectField>
                 <Show
-                    when={
-                        state.anyone === "Write" &&
-                        state.anyone !== currentPermissions()?.anyone
-                    }
+                    when={state.anyone === "Write" && state.anyone !== currentPermissions()?.anyone}
                 >
                     <Warning>
-                        <p>
-                            {
-                                "Anyone with the link will be able to edit the document."
-                            }
-                        </p>
-                        <p>
-                            {"This setting is convenient but it is not secure."}
-                        </p>
+                        <p>{"Anyone with the link will be able to edit the document."}</p>
+                        <p>{"This setting is convenient but it is not secure."}</p>
                     </Warning>
                 </Show>
             </FormGroup>
@@ -163,10 +133,7 @@ export function PermissionsForm(props: {
                                 <select
                                     id={`entry-${i()}`}
                                     value={userPerm.level ?? ""}
-                                    disabled={
-                                        currentPermissions()?.users?.[i()]
-                                            ?.level === "Own"
-                                    }
+                                    disabled={currentPermissions()?.users?.[i()]?.level === "Own"}
                                     onInput={(evt) => {
                                         const value = evt.currentTarget.value;
                                         setState(
@@ -176,7 +143,7 @@ export function PermissionsForm(props: {
                                                 user.level = value
                                                     ? (value as PermissionLevel)
                                                     : null;
-                                            })
+                                            }),
                                         );
                                     }}
                                 >
@@ -196,22 +163,14 @@ export function PermissionsForm(props: {
             </FormGroup>
             <Show when={willAddOwners()}>
                 <Warning>
-                    <p>
-                        {
-                            "Setting these permissions will be an irrevocable action."
-                        }
-                    </p>
+                    <p>{"Setting these permissions will be an irrevocable action."}</p>
                     <p>{"Ownership, once granted, cannot be revoked."}</p>
                 </Warning>
             </Show>
             <button
                 type="button"
                 class="ok"
-                disabled={
-                    !props.refId ||
-                    currentPermissions.loading ||
-                    currentPermissions.error
-                }
+                disabled={!props.refId || currentPermissions.loading || currentPermissions.error}
                 onClick={submitPermissions}
             >
                 Update permissions
@@ -230,22 +189,14 @@ export function PermissionsButton(props: {
     const user = () => props.permissions.user;
 
     return (
-        <Switch
-            fallback={
-                <EditorPermissionsButton permissions={props.permissions} />
-            }
-        >
+        <Switch fallback={<EditorPermissionsButton permissions={props.permissions} />}>
             <Match when={anyone() === "Own"}>
                 <AnonPermissionsButton />
             </Match>
             <Match when={user() === "Own"}>
                 <OwnerPermissionsButton refId={props.refId} />
             </Match>
-            <Match
-                when={[anyone(), user()].every(
-                    (level) => level === null || level === "Read"
-                )}
-            >
+            <Match when={[anyone(), user()].every((level) => level === null || level === "Read")}>
                 <ReadonlyPermissionsButton />
             </Match>
         </Switch>
@@ -272,8 +223,7 @@ function AnonPermissionsButton() {
             trigger={AnonPermissionsTrigger}
         >
             <p>
-                This document can be <strong>edited by anyone</strong> with the
-                link.
+                This document can be <strong>edited by anyone</strong> with the link.
             </p>
             <Switch>
                 <Match when={user.data}>
@@ -287,9 +237,7 @@ function AnonPermissionsButton() {
                 </Match>
                 <Match when={!user.loading}>
                     <div class="separator" />
-                    <p>
-                        To create documents with restricted permissions, log in.
-                    </p>
+                    <p>To create documents with restricted permissions, log in.</p>
                     <Login onComplete={() => setOpen(false)} />
                 </Match>
             </Switch>
@@ -331,11 +279,9 @@ const EditorPermissionsButton = (props: { permissions: Permissions }) => {
         <>
             {"This document "}
             <Show when={permissions.user}>
-                is <strong>{permissionAdjective(permissions.user)}</strong> by
-                you {"and "}
+                is <strong>{permissionAdjective(permissions.user)}</strong> by you {"and "}
             </Show>
-            is <strong>{permissionAdjective(permissions.anyone)}</strong> by the
-            public
+            is <strong>{permissionAdjective(permissions.anyone)}</strong> by the public
         </>
     );
     return (
@@ -355,10 +301,7 @@ function OwnerPermissionsButton(props: { refId?: string }) {
             title="Permissions"
             trigger={OwnerPermissionsTrigger}
         >
-            <PermissionsForm
-                refId={props.refId}
-                onComplete={() => setOpen(false)}
-            />
+            <PermissionsForm refId={props.refId} onComplete={() => setOpen(false)} />
         </Dialog>
     );
 }

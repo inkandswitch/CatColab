@@ -22,11 +22,7 @@ export type ModelDoc = HasVersionControlMetadata<Uuid, Cell<unknown>> & {
     analysisDocUrl: AutomergeUrl;
 };
 
-export const patchesToAnnotations = (
-    doc: ModelDoc,
-    _docBefore: ModelDoc,
-    patches: A.Patch[]
-) => {
+export const patchesToAnnotations = (doc: ModelDoc, _docBefore: ModelDoc, patches: A.Patch[]) => {
     const changedCells = new Set<Uuid>();
     const annotations: Annotation<Uuid, Cell<unknown>>[] = [];
 
@@ -34,7 +30,7 @@ export const patchesToAnnotations = (
     // ... but it works if we look up the heads in the history
     const headsBefore = A.getHeads(_docBefore);
     const docBefore = A.getHistory(doc).find(
-        ({ change }) => change.hash === headsBefore[0]
+        ({ change }) => change.hash === headsBefore[0],
     )?.snapshot;
 
     patches.forEach((patch) => {
@@ -81,9 +77,7 @@ export const patchesToAnnotations = (
                     return;
                 }
 
-                const before = docBefore?.notebook.cells.find(
-                    (cell) => cell.id === after.id
-                );
+                const before = docBefore?.notebook.cells.find((cell) => cell.id === after.id);
 
                 if (!before) {
                     annotations.push({
@@ -111,9 +105,7 @@ export const patchesToAnnotations = (
 };
 
 const valueOfAnchor = (doc: ModelDoc, anchor: Uuid): Cell<unknown> => {
-    return doc.notebook.cells.find(
-        (cell) => cell.id === anchor
-    ) as Cell<unknown>;
+    return doc.notebook.cells.find((cell) => cell.id === anchor) as Cell<unknown>;
 };
 
 const sortAnchorsBy = (doc: ModelDoc, anchor: Uuid): number => {
@@ -136,9 +128,7 @@ export const includeChangeInHistory = (doc: ModelDoc) => {
     ].map((path) => A.getObjectId(doc, path));
 
     return (decodedChange: DecodedChangeWithMetadata) => {
-        return decodedChange.ops.every(
-            (op) => !metadataObjIds.includes(op.obj)
-        );
+        return decodedChange.ops.every((op) => !metadataObjIds.includes(op.obj));
     };
 };
 

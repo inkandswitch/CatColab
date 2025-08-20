@@ -1,11 +1,7 @@
 import * as Automerge from "@automerge/automerge";
 import { AutomergeUrl, Repo } from "@automerge/automerge-repo";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
-import {
-    Annotation,
-    DiffAnnotation,
-    Pointer,
-} from "@patchwork/sdk/annotations";
+import { Annotation, DiffAnnotation, Pointer } from "@patchwork/sdk/annotations";
 import { Cell, Uuid } from "catlog-wasm";
 import React, { useEffect, useRef } from "react";
 import { Component } from "solid-js";
@@ -14,10 +10,11 @@ import { AnalysisDoc } from "./analysis_datatype";
 import { ModelDoc } from "./model_datatype";
 import "./annotations.css";
 
-export class CellPointer<D extends ModelDoc | AnalysisDoc>
-    implements Pointer<D, Uuid, any>
-{
-    constructor(readonly doc: D, readonly target: Uuid) {}
+export class CellPointer<D extends ModelDoc | AnalysisDoc> implements Pointer<D, Uuid, any> {
+    constructor(
+        readonly doc: D,
+        readonly target: Uuid,
+    ) {}
 
     get value(): any {
         return this.doc.notebook.cells.find((cell) => cell.id === this.target)!;
@@ -33,7 +30,7 @@ export class CellPointer<D extends ModelDoc | AnalysisDoc>
 export const patchesToAnnotation = <D extends ModelDoc | AnalysisDoc>(
     docBefore: D,
     docAfter: D,
-    patches: Automerge.Patch[]
+    patches: Automerge.Patch[],
 ): DiffAnnotation<D, Uuid, Cell<unknown>>[] => {
     const annotations: DiffAnnotation<D, Uuid, Cell<unknown>>[] = [];
 
@@ -50,9 +47,7 @@ export const patchesToAnnotation = <D extends ModelDoc | AnalysisDoc>(
         switch (patch.action) {
             case "del": {
                 const cellId = docBefore.notebook.cells[cellIndex].id;
-                const cellAfter = docAfter.notebook.cells.find(
-                    (cell) => cell.id === cellId
-                );
+                const cellAfter = docAfter.notebook.cells.find((cell) => cell.id === cellId);
 
                 if (cellAfter) {
                     if (changedCellIds.has(cellId)) {
@@ -77,9 +72,7 @@ export const patchesToAnnotation = <D extends ModelDoc | AnalysisDoc>(
             case "splice":
             case "put": {
                 const cellId = docAfter.notebook.cells[cellIndex].id;
-                const cellBefore = docBefore.notebook.cells.find(
-                    (cell) => cell.id === cellId
-                );
+                const cellBefore = docBefore.notebook.cells.find((cell) => cell.id === cellId);
                 if (cellBefore) {
                     if (changedCellIds.has(cellId)) {
                         break;
@@ -143,7 +136,7 @@ export function CellAnnotationsViewWrapper({
                         annotations,
                         docUrl,
                     }),
-                solidContainerRef.current
+                solidContainerRef.current,
             );
         }
 

@@ -1,12 +1,5 @@
 import { useParams } from "@solidjs/router";
-import {
-    Accessor,
-    Match,
-    Show,
-    Switch,
-    createResource,
-    useContext,
-} from "solid-js";
+import { Accessor, Match, Show, Switch, createResource, useContext } from "solid-js";
 import invariant from "tiny-invariant";
 
 import type { Cell, ModelJudgment, Uuid } from "catlog-wasm";
@@ -54,7 +47,7 @@ export default function ModelPage() {
 
     const [liveModel] = createResource(
         () => params.ref,
-        (refId) => getLiveModel(refId, api, theories)
+        (refId) => getLiveModel(refId, api, theories),
     );
 
     return (
@@ -112,9 +105,7 @@ export function ModelPane(props: { liveModel: LiveModelDocument }) {
                         });
                     }}
                     theories={theories}
-                    disabled={liveDoc().doc.notebook.cells.some(
-                        (cell) => cell.tag === "formal"
-                    )}
+                    disabled={liveDoc().doc.notebook.cells.some((cell) => cell.tag === "formal")}
                 />
             </div>
             <ModelNotebookEditor liveModel={props.liveModel} />
@@ -160,11 +151,7 @@ export function ModelCellEditor(props: FormalCellEditorProps<ModelJudgment>) {
             <Match when={props.content.tag === "object"}>
                 <ObjectCellEditor
                     object={props.content as ObjectDecl}
-                    modifyObject={(f) =>
-                        props.changeContent((content) =>
-                            f(content as ObjectDecl)
-                        )
-                    }
+                    modifyObject={(f) => props.changeContent((content) => f(content as ObjectDecl))}
                     isActive={props.isActive}
                     actions={props.actions}
                 />
@@ -173,9 +160,7 @@ export function ModelCellEditor(props: FormalCellEditorProps<ModelJudgment>) {
                 <MorphismCellEditor
                     morphism={props.content as MorphismDecl}
                     modifyMorphism={(f) =>
-                        props.changeContent((content) =>
-                            f(content as MorphismDecl)
-                        )
+                        props.changeContent((content) => f(content as MorphismDecl))
                     }
                     isActive={props.isActive}
                     actions={props.actions}
@@ -185,9 +170,7 @@ export function ModelCellEditor(props: FormalCellEditorProps<ModelJudgment>) {
     );
 }
 
-function modelCellConstructor(
-    meta: ModelTypeMeta
-): CellConstructor<ModelJudgment> {
+function modelCellConstructor(meta: ModelTypeMeta): CellConstructor<ModelJudgment> {
     const { name, description, shortcut } = meta;
     return {
         name,

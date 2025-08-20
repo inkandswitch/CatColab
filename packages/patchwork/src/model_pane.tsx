@@ -22,7 +22,7 @@ export function ModelPaneComponent(props: SolidToolProps) {
                 console.error("Stack:", (error as Error).stack);
                 throw error;
             }
-        }
+        },
     );
 
     const isLoading = () => liveModel.loading || !liveModel();
@@ -38,21 +38,16 @@ export function ModelPaneComponent(props: SolidToolProps) {
                 <Show when={hasError()}>
                     <Show when={liveModel.error}>
                         <div>
-                            ❌ Error loading model:{" "}
-                            {liveModel.error?.message || "Unknown error"}
+                            ❌ Error loading model: {liveModel.error?.message || "Unknown error"}
                         </div>
                     </Show>
                 </Show>
                 <Show when={!isLoading()}>
                     {(_) => {
                         return (
-                            <AnnotationsContext.Provider
-                                value={props.annotationsContextValue}
-                            >
+                            <AnnotationsContext.Provider value={props.annotationsContextValue}>
                                 <ApiContext.Provider value={api}>
-                                    <TheoryLibraryContext.Provider
-                                        value={stdTheories}
-                                    >
+                                    <TheoryLibraryContext.Provider value={stdTheories}>
                                         <ModelPane liveModel={liveModel()!} />
                                     </TheoryLibraryContext.Provider>
                                 </ApiContext.Provider>

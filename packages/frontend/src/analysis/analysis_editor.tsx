@@ -47,23 +47,18 @@ import PanelRightClose from "lucide-solid/icons/panel-right-close";
 export default function AnalysisPage() {
     const api = useApi();
     const theories = useContext(TheoryLibraryContext);
-    invariant(
-        theories,
-        "Must provide theory library as context to analysis page"
-    );
+    invariant(theories, "Must provide theory library as context to analysis page");
 
     const params = useParams();
 
     const [liveAnalysis] = createResource(
         () => params.ref,
-        (refId) => getLiveAnalysis(refId, api, theories)
+        (refId) => getLiveAnalysis(refId, api, theories),
     );
 
     return (
         <Show when={liveAnalysis()} fallback={<DocumentLoadingScreen />}>
-            {(loadedAnalysis) => (
-                <AnalysisDocumentEditor liveAnalysis={loadedAnalysis()} />
-            )}
+            {(loadedAnalysis) => <AnalysisDocumentEditor liveAnalysis={loadedAnalysis()} />}
         </Show>
     );
 }
@@ -76,8 +71,7 @@ performing analysis of the model.
 export function AnalysisDocumentEditor(props: {
     liveAnalysis: LiveAnalysisDocument;
 }) {
-    const [resizableContext, setResizableContext] =
-        createSignal<ContextValue>();
+    const [resizableContext, setResizableContext] = createSignal<ContextValue>();
     const [isSidePanelOpen, setSidePanelOpen] = createSignal(true);
 
     createEffect(() => {
@@ -111,18 +105,10 @@ export function AnalysisDocumentEditor(props: {
                             minSize={0.25}
                         >
                             <Toolbar>
-                                <AnalysisMenu
-                                    liveAnalysis={props.liveAnalysis}
-                                />
-                                <DocumentBreadcrumbs
-                                    document={props.liveAnalysis}
-                                />
+                                <AnalysisMenu liveAnalysis={props.liveAnalysis} />
+                                <DocumentBreadcrumbs document={props.liveAnalysis} />
                                 <span class="filler" />
-                                <TheoryHelpButton
-                                    theory={theoryForAnalysis(
-                                        props.liveAnalysis
-                                    )}
-                                />
+                                <TheoryHelpButton theory={theoryForAnalysis(props.liveAnalysis)} />
                                 <IconButton
                                     onClick={toggleSidePanel}
                                     tooltip={
@@ -131,10 +117,7 @@ export function AnalysisDocumentEditor(props: {
                                             : "Show the analysis panel"
                                     }
                                 >
-                                    <Show
-                                        when={isSidePanelOpen()}
-                                        fallback={<PanelRight />}
-                                    >
+                                    <Show when={isSidePanelOpen()} fallback={<PanelRight />}>
                                         <PanelRightClose />
                                     </Show>
                                 </IconButton>
@@ -156,9 +139,7 @@ export function AnalysisDocumentEditor(props: {
                                     <div class="toolbar-spacer" />
                                 </div>
                                 <h2>Analysis</h2>
-                                <AnalysisNotebookEditor
-                                    liveAnalysis={props.liveAnalysis}
-                                />
+                                <AnalysisNotebookEditor liveAnalysis={props.liveAnalysis} />
                             </div>
                         </Resizable.Panel>
                     </>
@@ -185,19 +166,11 @@ const AnalysisMenu = (props: { liveAnalysis: LiveAnalysisDocument }) => {
 
 const AnalysisOfPane = (props: { liveAnalysis: LiveAnalysisDocument }) => (
     <Switch>
-        <Match
-            when={
-                props.liveAnalysis.analysisType === "model" &&
-                props.liveAnalysis.liveModel
-            }
-        >
+        <Match when={props.liveAnalysis.analysisType === "model" && props.liveAnalysis.liveModel}>
             {(liveModel) => <ModelPane liveModel={liveModel()} />}
         </Match>
         <Match
-            when={
-                props.liveAnalysis.analysisType === "diagram" &&
-                props.liveAnalysis.liveDiagram
-            }
+            when={props.liveAnalysis.analysisType === "diagram" && props.liveAnalysis.liveDiagram}
         >
             {(liveDiagram) => <DiagramPane liveDiagram={liveDiagram()} />}
         </Match>
@@ -227,9 +200,7 @@ export function AnalysisNotebookEditor(props: {
                 handle={liveDoc().docHandle}
                 path={["notebook"]}
                 notebook={liveDoc().doc.notebook}
-                changeNotebook={(f) =>
-                    liveDoc().changeDoc((doc) => f(doc.notebook))
-                }
+                changeNotebook={(f) => liveDoc().changeDoc((doc) => f(doc.notebook))}
                 formalCellEditor={AnalysisCellEditor}
                 cellConstructors={cellConstructors()}
                 noShortcuts={true}
@@ -238,32 +209,22 @@ export function AnalysisNotebookEditor(props: {
     );
 }
 
-export function AnalysisCellEditor(
-    props: FormalCellEditorProps<Analysis<unknown>>
-) {
+export function AnalysisCellEditor(props: FormalCellEditorProps<Analysis<unknown>>) {
     const liveAnalysis = useContext(LiveAnalysisContext);
-    invariant(
-        liveAnalysis,
-        "Live analysis should be provided as context for cell editor"
-    );
+    invariant(liveAnalysis, "Live analysis should be provided as context for cell editor");
 
     return (
         <Switch>
             <Match
                 when={
                     liveAnalysis().analysisType === "model" &&
-                    theoryForAnalysis(liveAnalysis())?.modelAnalysis(
-                        props.content.id
-                    )
+                    theoryForAnalysis(liveAnalysis())?.modelAnalysis(props.content.id)
                 }
             >
                 {(analysis) => (
                     <Dynamic
                         component={analysis().component}
-                        liveModel={
-                            (liveAnalysis() as LiveModelAnalysisDocument)
-                                .liveModel
-                        }
+                        liveModel={(liveAnalysis() as LiveModelAnalysisDocument).liveModel}
                         content={props.content.content}
                         changeContent={(f: (c: unknown) => void) =>
                             props.changeContent((content) => f(content.content))
@@ -274,18 +235,13 @@ export function AnalysisCellEditor(
             <Match
                 when={
                     liveAnalysis().analysisType === "diagram" &&
-                    theoryForAnalysis(liveAnalysis())?.diagramAnalysis(
-                        props.content.id
-                    )
+                    theoryForAnalysis(liveAnalysis())?.diagramAnalysis(props.content.id)
                 }
             >
                 {(analysis) => (
                     <Dynamic
                         component={analysis().component}
-                        liveDiagram={
-                            (liveAnalysis() as LiveDiagramAnalysisDocument)
-                                .liveDiagram
-                        }
+                        liveDiagram={(liveAnalysis() as LiveDiagramAnalysisDocument).liveDiagram}
                         content={props.content.content}
                         changeContent={(f: (c: unknown) => void) =>
                             props.changeContent((content) => f(content.content))
@@ -297,9 +253,7 @@ export function AnalysisCellEditor(
     );
 }
 
-function analysisCellConstructor<T>(
-    meta: AnalysisMeta<T>
-): CellConstructor<Analysis<T>> {
+function analysisCellConstructor<T>(meta: AnalysisMeta<T>): CellConstructor<Analysis<T>> {
     const { id, name, description, initialContent } = meta;
     return {
         name,

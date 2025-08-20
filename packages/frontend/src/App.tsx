@@ -5,12 +5,7 @@ import invariant from "tiny-invariant";
 import * as uuid from "uuid";
 
 import { MultiProvider } from "@solid-primitives/context";
-import {
-    Navigate,
-    type RouteDefinition,
-    type RouteSectionProps,
-    Router,
-} from "@solidjs/router";
+import { Navigate, type RouteDefinition, type RouteSectionProps, Router } from "@solidjs/router";
 
 import { ErrorBoundary, Show, createResource, lazy } from "solid-js";
 
@@ -40,9 +35,7 @@ const Root = (props: RouteSectionProps<unknown>) => {
                 [TheoryLibraryContext, stdTheories],
             ]}
         >
-            <ErrorBoundary
-                fallback={(err) => <ErrorBoundaryDialog error={err} />}
-            >
+            <ErrorBoundary fallback={(err) => <ErrorBoundaryDialog error={err} />}>
                 <PageContainer>{props.children}</PageContainer>
             </ErrorBoundary>
         </MultiProvider>
@@ -55,11 +48,7 @@ function CreateModel() {
     const theoryId = stdTheories.getDefault().id;
     const [ref] = createResource<string>(() => createModel(api, theoryId));
 
-    return (
-        <Show when={ref()}>
-            {(ref) => <Navigate href={`/model/${ref()}`} />}
-        </Show>
-    );
+    return <Show when={ref()}>{(ref) => <Navigate href={`/model/${ref()}`} />}</Show>;
 }
 
 const refIsUUIDFilter = {

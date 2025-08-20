@@ -66,7 +66,7 @@ export type ValidatedModel = {
 function enlivenModelDocument(
     refId: string,
     liveDoc: LiveDoc<ModelDocument>,
-    theories: TheoryLibrary
+    theories: TheoryLibrary,
 ): LiveModelDocument {
     const { doc } = liveDoc;
 
@@ -110,7 +110,7 @@ function enlivenModelDocument(
             }
         },
         undefined,
-        { equals: false }
+        { equals: false },
     );
 
     return {
@@ -131,7 +131,7 @@ Returns the ref ID of the created document.
  */
 export async function createModel(
     api: Api,
-    initOrTheoryId: ModelDocument | string
+    initOrTheoryId: ModelDocument | string,
 ): Promise<string> {
     let init: ModelDocument;
     if (typeof initOrTheoryId === "string") {
@@ -155,7 +155,7 @@ export async function createModel(
 export async function getLiveModel(
     refId: string,
     api: Api,
-    theories: TheoryLibrary
+    theories: TheoryLibrary,
 ): Promise<LiveModelDocument> {
     const liveDoc = await getLiveDoc<ModelDocument>(api, refId, "model");
     return enlivenModelDocument(refId, liveDoc, theories);

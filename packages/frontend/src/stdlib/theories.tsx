@@ -26,7 +26,7 @@ stdTheories.add(
             ...meta,
             theory: thEmpty.theory(),
         });
-    }
+    },
 );
 
 stdTheories.add(
@@ -97,7 +97,7 @@ stdTheories.add(
                 }),
             ],
         });
-    }
+    },
 );
 
 stdTheories.add(
@@ -190,8 +190,7 @@ stdTheories.add(
                     tag: "ObType",
                     obType: { tag: "Basic", content: "AttrType" },
                     name: "Attribute variable",
-                    description:
-                        "Variable that can be bound to attribute values",
+                    description: "Variable that can be bound to attribute values",
                 },
             ],
             modelAnalyses: [
@@ -209,7 +208,7 @@ stdTheories.add(
                 }),
             ],
         });
-    }
+    },
 );
 
 stdTheories.add(
@@ -264,8 +263,7 @@ stdTheories.add(
                 analyses.configureSubmodelsAnalysis({
                     id: "positive-loops",
                     name: "Positive feedback",
-                    description:
-                        "Analyze the network for positive feedback loops",
+                    description: "Analyze the network for positive feedback loops",
                     findSubmodels(model, options) {
                         return thSignedCategory.positiveLoops(model, options);
                     },
@@ -273,8 +271,7 @@ stdTheories.add(
                 analyses.configureSubmodelsAnalysis({
                     id: "negative-loops",
                     name: "Negative feedback",
-                    description:
-                        "Analyze the network for negative feedback loops",
+                    description: "Analyze the network for negative feedback loops",
                     findSubmodels(model, options) {
                         return thSignedCategory.negativeLoops(model, options);
                     },
@@ -286,7 +283,7 @@ stdTheories.add(
                 }),
             ],
         });
-    }
+    },
 );
 
 stdTheories.add(
@@ -357,12 +354,11 @@ stdTheories.add(
                     },
                 }),
                 analyses.configureLotkaVolterra({
-                    simulate: (model, data) =>
-                        thSignedCategory.lotkaVolterra(model, data),
+                    simulate: (model, data) => thSignedCategory.lotkaVolterra(model, data),
                 }),
             ],
         });
-    }
+    },
 );
 
 stdTheories.add(
@@ -437,10 +433,7 @@ stdTheories.add(
                     name: "Balancing loops",
                     description: "Find the fast-acting balancing loops",
                     findSubmodels(model, options) {
-                        return thDelayedSignedCategory.negativeLoops(
-                            model,
-                            options
-                        );
+                        return thDelayedSignedCategory.negativeLoops(model, options);
                     },
                 }),
                 analyses.configureSubmodelsAnalysis({
@@ -448,10 +441,7 @@ stdTheories.add(
                     name: "Reinforcing loops",
                     description: "Find the fast-acting reinforcing loops",
                     findSubmodels(model, options) {
-                        return thDelayedSignedCategory.positiveLoops(
-                            model,
-                            options
-                        );
+                        return thDelayedSignedCategory.positiveLoops(model, options);
                     },
                 }),
                 analyses.configureSubmodelsAnalysis({
@@ -459,10 +449,7 @@ stdTheories.add(
                     name: "Delayed balancing loops",
                     description: "Find the slow-acting balancing loops",
                     findSubmodels(model, options) {
-                        return thDelayedSignedCategory.delayedNegativeLoops(
-                            model,
-                            options
-                        );
+                        return thDelayedSignedCategory.delayedNegativeLoops(model, options);
                     },
                 }),
                 analyses.configureSubmodelsAnalysis({
@@ -470,23 +457,19 @@ stdTheories.add(
                     name: "Delayed reinforcing loops",
                     description: "Find the slow-acting reinforcing loops",
                     findSubmodels(model, options) {
-                        return thDelayedSignedCategory.delayedPositiveLoops(
-                            model,
-                            options
-                        );
+                        return thDelayedSignedCategory.delayedPositiveLoops(model, options);
                     },
                 }),
             ],
         });
-    }
+    },
 );
 
 stdTheories.add(
     {
         id: "indeterminate-causal-loop",
         name: "Causal loop diagram with indeterminates",
-        description:
-            "Positive, negative, and indeterminate causal relationships",
+        description: "Positive, negative, and indeterminate causal relationships",
         group: "System Dynamics",
         help: "indeterminate-causal-loop",
     },
@@ -529,8 +512,7 @@ stdTheories.add(
                     tag: "MorType",
                     morType: { tag: "Basic", content: "Zero" },
                     name: "Indeterminate link",
-                    description:
-                        "The direction that variables change is indeterminate",
+                    description: "The direction that variables change is indeterminate",
                     shortcut: ["Z"],
                     arrowStyle: "indeterminate",
                     preferUnnamed: true,
@@ -544,7 +526,7 @@ stdTheories.add(
                 }),
             ],
         });
-    }
+    },
 );
 
 stdTheories.add(
@@ -631,7 +613,7 @@ stdTheories.add(
                 analyses.configureDecapodes({}),
             ],
         });
-    }
+    },
 );
 
 stdTheories.add(
@@ -694,5 +676,5 @@ stdTheories.add(
                 }),
             ],
         });
-    }
+    },
 );

@@ -1,9 +1,6 @@
 import { createResource, Show } from "solid-js";
 
-import {
-    getLiveAnalysis,
-    LiveAnalysisDocument,
-} from "../../frontend/src/analysis";
+import { getLiveAnalysis, LiveAnalysisDocument } from "../../frontend/src/analysis";
 import { AnalysisNotebookEditor } from "../../frontend/src/analysis/analysis_editor";
 import { ApiContext } from "../../frontend/src/api";
 import { stdTheories, TheoryLibraryContext } from "../../frontend/src/stdlib";
@@ -22,7 +19,7 @@ export function AnalysisPaneComponent(props: SolidToolProps) {
             } catch (error) {
                 throw error;
             }
-        }
+        },
     );
 
     return (
@@ -33,31 +30,18 @@ export function AnalysisPaneComponent(props: SolidToolProps) {
                 </Show>
                 <Show when={liveAnalysis.error}>
                     <div>
-                        ❌ Error loading model:{" "}
-                        {liveAnalysis.error?.message || "Unknown error"}
+                        ❌ Error loading model: {liveAnalysis.error?.message || "Unknown error"}
                     </div>
                 </Show>
-                <Show
-                    when={
-                        liveAnalysis() &&
-                        !liveAnalysis.loading &&
-                        !liveAnalysis.error
-                    }
-                >
+                <Show when={liveAnalysis() && !liveAnalysis.loading && !liveAnalysis.error}>
                     {(_) => {
                         // Provide contexts using SAME import paths as ModelPane
                         return (
-                            <AnnotationsContext.Provider
-                                value={props.annotationsContextValue}
-                            >
+                            <AnnotationsContext.Provider value={props.annotationsContextValue}>
                                 <ApiContext.Provider value={api}>
-                                    <TheoryLibraryContext.Provider
-                                        value={stdTheories}
-                                    >
+                                    <TheoryLibraryContext.Provider value={stdTheories}>
                                         <AnalysisNotebookEditor
-                                            liveAnalysis={
-                                                liveAnalysis() as LiveAnalysisDocument
-                                            }
+                                            liveAnalysis={liveAnalysis() as LiveAnalysisDocument}
                                         />
                                     </TheoryLibraryContext.Provider>
                                 </ApiContext.Provider>

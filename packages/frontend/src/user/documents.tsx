@@ -1,14 +1,7 @@
 import type { RefStub } from "catcolab-api";
 import { getAuth } from "firebase/auth";
 import { useFirebaseApp } from "solid-firebase";
-import {
-    For,
-    Match,
-    Switch,
-    createResource,
-    createSignal,
-    onMount,
-} from "solid-js";
+import { For, Match, Switch, createResource, createSignal, onMount } from "solid-js";
 import { resultErr, resultOk, useApi } from "../api";
 import { BrandedToolbar } from "../page";
 import { LoginGate } from "./login";
@@ -32,9 +25,7 @@ function DocumentsSearch() {
     const api = useApi();
 
     const [searchQuery, setSearchQuery] = createSignal<string>("");
-    const [debouncedQuery, setDebouncedQuery] = createSignal<string | null>(
-        null
-    );
+    const [debouncedQuery, setDebouncedQuery] = createSignal<string | null>(null);
     const [latestRequestId, setLatestRequestId] = createSignal(0);
 
     let debounceTimer: ReturnType<typeof setTimeout>;
@@ -105,9 +96,7 @@ function DocumentsSearch() {
                                 <Match when={resultOk(refStubs())}>
                                     {(okRes) => (
                                         <For each={okRes()}>
-                                            {(stub) => (
-                                                <RefStubRow stub={stub} />
-                                            )}
+                                            {(stub) => <RefStubRow stub={stub} />}
                                         </For>
                                     )}
                                 </Match>
@@ -115,8 +104,7 @@ function DocumentsSearch() {
                                     {(errRes) => (
                                         <tr>
                                             <td colspan="5">
-                                                Error loading documents:{" "}
-                                                {errRes().message}
+                                                Error loading documents: {errRes().message}
                                             </td>
                                         </tr>
                                     )}
