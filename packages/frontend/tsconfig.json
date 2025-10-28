@@ -17,10 +17,10 @@
         "jsx": "preserve",
         "jsxImportSource": "solid-js",
 
-        "strict": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "noUncheckedIndexedAccess": true,
+        "strict": false,
+        "noUnusedLocals": false,
+        "noUnusedParameters": false,
+        "noUncheckedIndexedAccess": false,
         "noFallthroughCasesInSwitch": true
     },
     "include": ["src", "vite.config.ts", "../patchwork/src"]

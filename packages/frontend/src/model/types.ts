@@ -1,6 +1,6 @@
 import { v7 } from "uuid";
 
-import type { ModelJudgment, MorType, ObType } from "catlog-wasm";
+import type { DblModel, Link, ModelJudgment, MorType, ObType, QualifiedName } from "catlog-wasm";
 import { deepCopyJSON } from "../util/deepcopy";
 
 /** Declaration of an object in a model. */
@@ -31,8 +31,40 @@ export const newMorphismDecl = (morType: MorType): MorphismDecl => ({
     cod: null,
 });
 
+/** Create a new instantiation of an existing model. */
+export const newInstantiatedModel = (
+    model?: Link | null,
+): ModelJudgment & { tag: "instantiation" } => ({
+    tag: "instantiation",
+    id: v7(),
+    name: "",
+    model: model ?? null,
+    specializations: [],
+});
+
 /** Duplicate a model judgment, creating a fresh UUID when applicable. */
 export const duplicateModelJudgment = (jgmt: ModelJudgment): ModelJudgment => ({
     ...deepCopyJSON(jgmt),
     id: v7(),
 });
+
+/** Return the label of a morphism if it exists, otherwise a label of the form "src->tgt" */
+export function morLabelOrDefault(id: QualifiedName, model?: DblModel): string {
+    const label = model?.morGeneratorLabel(id);
+    if (label) {
+        return label.join(".");
+    }
+
+    const [dom, cod] = [model?.getDom(id), model?.getCod(id)];
+    if (dom?.tag !== "Basic" || cod?.tag !== "Basic") {
+        return "";
+    }
+
+    const source = model?.obGeneratorLabel(dom.content);
+    const target = model?.obGeneratorLabel(cod.content);
+    if (source && target) {
+        return `${source.join(".")}→${target.join(".")}`;
+    }
+
+    return "";
+}

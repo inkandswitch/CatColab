@@ -1,7 +1,7 @@
 {
-    "name": "@patchwork/solidjs-demo",
+    "name": "catcolab-patchwork",
     "version": "0.0.1",
-    "description": "A demo showing how to use SolidJS inside a React app",
+    "description": "A Patchwork module for CatColab",
     "type": "module",
     "main": "src/index.ts",
     "exports": {
@@ -10,22 +10,23 @@
     "scripts": {
         "build": "vite build",
         "push": "pnpm build && pushwork sync",
+        "sync": "pnpm build && pushwork sync",
         "format": "biome format --write",
+        "lint": "biome lint --write && biome check --write",
         "watch": "nodemon --watch src -e js,tsx,ts,tsx,css,json --exec 'pnpm build && pnpm push'"
     },
     "keywords": [],
     "author": "Ink & Switch",
     "dependencies": {
-        "@automerge/automerge": "^2.2.9",
-        "@automerge/automerge-repo": "^2.0.7",
-        "@automerge/automerge-repo-react-hooks": "^2.0.7",
+        "@automerge/automerge": "^3.1.1",
+        "@automerge/automerge-repo": "^2.2.0",
+        "@automerge/automerge-repo-react-hooks": "^2.2.0",
         "@corvu/dialog": "^0.2.4",
         "@patchwork/sdk": "link:../../../patchwork/sdk",
         "catlog-wasm": "link:../catlog-wasm/pkg",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
-        "solid-element": "^1.8.0",
-        "solid-js": "link:../frontend/node_modules/.pnpm/solid-js@1.9.2/node_modules/solid-js",
+        "solid-js": "^1.9.10",
         "tailwindcss": "^4.0.9",
         "uuid": "^11.0.3"
     },
@@ -37,6 +38,7 @@
         "@vitejs/plugin-react": "^4.3.1",
         "autoprefixer": "^10.4.20",
         "nodemon": "^3.1.9",
+        "typescript": "^5.2.2",
         "vite": "^5.3.4",
         "vite-plugin-css-injected-by-js": "^3.5.2",
         "vite-plugin-solid": "^2.10.2",

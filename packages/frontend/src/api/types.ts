@@ -1,57 +1,173 @@
-import type { Repo } from "@automerge/automerge-repo";
-import type { Uuid } from "catlog-wasm";
+import { type DocHandle, type DocumentId, Repo } from "@automerge/automerge-repo";
+import { BrowserWebSocketClientAdapter } from "@automerge/automerge-repo-network-websocket";
+import { IndexedDBStorageAdapter } from "@automerge/automerge-repo-storage-indexeddb";
+import type { FirebaseApp } from "firebase/app";
+import invariant from "tiny-invariant";
+import * as uuid from "uuid";
+
+import type { Permissions } from "catcolab-api";
+import type { Document, StableRef, Uuid } from "catlog-wasm";
+import type { InterfaceToType } from "../util/types";
+import { type LiveDoc, findAndMigrate, makeLiveDoc } from "./document";
+import { type RpcClient, createRpcClient } from "./rpc";
 
 /** Bundle of everything needed to interact with the CatColab backend. */
-export type Api = {
+export class Api {
+    /** Host part of the URL for the CatColab backend server. */
+    readonly serverHost: string;
+
+    /** RPC client for the CatColab backend API. */
+    readonly rpc: RpcClient;
+
     /** Automerge repo connected to the Automerge document server. */
-    repo: Repo;
-};
+    readonly repo: Repo;
 
-/** A stable reference to a document in the database.
+    /** Automerge repo with no networking, used for read-only documents. */
+    private readonly localRepo: Repo;
 
-Such a reference identifies a specific document, possibly at a specific version.
-The keys are prefixed with an underscore, e.g. `_id` instead of `id`, to avoid
-conflicts with other keys and unambiguously signal that the ID and other data
-apply at the *database* level, rather than merely the *document* level. The same
-convention is used in document databases like CouchDB and MongoDB.
- */
-export type StableRef = {
-    /** Unique identifier of the document. */
-    _id: Uuid;
+    /** Mapping from document ref ID to Automerge document ID.
 
-    /** Version of the document.
-
-    If null, refers to the head snapshot of document. This is the case when the
-    referenced document will receive live updates.
+    This is the simplest and safest form of caching that we can do. It is
+    entirely transient---it will be cleared on a page refresh---but it at least
+    ensures that we'll go straight to the Automerge repo's local storage instead
+    of thrashing the backend when a document is retrieved by multiple
+    components, such as in document breadcrumbs or compositional models.
      */
-    _version: string | null;
+    private readonly docCache: Map<Uuid, DocCacheEntry>;
 
-    /** Server containing the document.
+    constructor(props: {
+        serverUrl: string;
+        repoUrl: string;
+        firebaseApp: FirebaseApp;
+    }) {
+        this.serverHost = new URL(props.serverUrl).host;
 
-    Assuming one of the official deployments is used, this will be either
-    `catcolab.org` or `next.catcolab.org`.
+        this.rpc = createRpcClient(props.serverUrl, props.firebaseApp);
+
+        this.repo = new Repo({
+            storage: new IndexedDBStorageAdapter("catcolab"),
+            network: [new BrowserWebSocketClientAdapter(props.repoUrl)],
+        });
+        this.localRepo = new Repo();
+
+        this.docCache = new Map();
+    }
+
+    /** Get a live document for the given document ref.
+
+    When the user has write permissions, changes to the document will be
+    propagated by Automerge to the backend and to other clients. When the user
+    has only read permissions, the Automerge doc handle will be "fake", existing
+    only locally in the client. And if the user doesn't even have read
+    permissions, this method will raise a `PermissionsError`.
      */
-    _server: string;
+    async getLiveDoc<Doc extends Document>(
+        refId: Uuid,
+        docType?: Doc["type"],
+    ): Promise<LiveDoc<Doc>> {
+        const docHandle = await this.getDocHandle<Doc>(refId, docType);
+        const permissions = await this.getPermissions(refId);
+        return makeLiveDoc(docHandle, {
+            refId,
+            permissions,
+        });
+    }
+
+    /** Gets an Automerge document handle for the given document ref. */
+    async getDocHandle<Doc extends Document>(
+        refId: Uuid,
+        docType?: Doc["type"],
+    ): Promise<DocHandle<Doc>> {
+        const { docId, localOnly } = await this.getDocCacheEntry(refId);
+        const repo = localOnly ? this.localRepo : this.repo;
+        return await findAndMigrate<Doc>(repo, docId, docType);
+    }
+
+    /** Get permissions for the given document ref. */
+    async getPermissions(refId: Uuid): Promise<Permissions> {
+        const { permissions } = await this.getDocCacheEntry(refId);
+        return permissions;
+    }
+
+    private async getDocCacheEntry(refId: Uuid): Promise<DocCacheEntry> {
+        const entry = this.docCache.get(refId);
+        return entry ? entry : await this.fetchDocCacheEntry(refId);
+    }
+
+    private async fetchDocCacheEntry(refId: Uuid): Promise<DocCacheEntry> {
+        invariant(uuid.validate(refId), () => `Invalid document ref ${refId}`);
+
+        const result = await this.rpc.get_doc.query(refId);
+        if (result.tag !== "Ok") {
+            if (result.code === 403) {
+                throw new PermissionsError(result.message);
+            } else {
+                throw new Error(`Failed to retrieve document: ${result.message}`);
+            }
+        }
+        const refDoc = result.content;
+
+        let docId: DocumentId;
+        const isLive = refDoc.tag === "Live";
+        if (isLive) {
+            docId = refDoc.docId as DocumentId;
+        } else {
+            const docHandle = this.localRepo.create(refDoc.content);
+            docId = docHandle.documentId;
+        }
+
+        const { permissions } = refDoc;
+        const entry: DocCacheEntry = {
+            docId,
+            permissions,
+            localOnly: !isLive,
+        };
+        this.docCache.set(refId, entry);
+
+        return entry;
+    }
+
+    /** Create a new document in the backend, returning its ref ID. */
+    async createDoc(init: Document): Promise<Uuid> {
+        const result = await this.rpc.new_ref.mutate(init as InterfaceToType<Document>);
+        invariant(result.tag === "Ok", `Failed to create a new ${init.type}`);
+
+        return result.content;
+    }
+
+    /** Duplicate a document in the backend, returning the new ref ID. */
+    async duplicateDoc(doc: Document): Promise<Uuid> {
+        const init: Document = {
+            ...doc,
+            name: `${doc.name} (copy)`,
+        };
+
+        const result = await this.rpc.new_ref.mutate(init as InterfaceToType<Document>);
+        invariant(result.tag === "Ok", `Failed to duplicate the ${doc.type}`);
+
+        return result.content;
+    }
+
+    /** Create a stable reference to a document ref, without a version. */
+    makeUnversionedRef(refId: Uuid): StableRef {
+        return {
+            _id: refId,
+            _version: null,
+            _server: this.serverHost,
+        };
+    }
+}
+
+type DocCacheEntry = {
+    docId: DocumentId;
+    permissions: Permissions;
+    localOnly: boolean;
 };
 
-/** Base type for a document persisted in the database. */
-export type Document<T extends string> = {
-    /** Type of the document, such as "model" or "diagram". */
-    type: T;
-
-    /** Human-readable name of the document. */
-    name: string;
-};
-
-/** A document located within the database. */
-export type StableDocument<T extends string> = StableRef & Document<T>;
-
-/** A link from one document to another.
-
-The source of the link is the document containing this data and the target of
-link is given by the data itself.
- */
-export type Link<T extends string> = StableRef & {
-    /** Type of the link, such as "diagramIn" or "analysisOf" .*/
-    type: T;
-};
+/** Error raised when backend reports that permissions are insufficient. */
+export class PermissionsError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "PermisssionsError";
+    }
+}

@@ -2,27 +2,36 @@
   description = "configurations for deploying catcolab";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-24.11";
-    crate2nix = {
-      url = "github:nix-community/crate2nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
     agenix.url = "github:ryantm/agenix";
     deploy-rs.url = "github:serokell/deploy-rs";
     fenix = {
       url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    crane = {
+      url = "github:ipetkov/crane";
+    };
+
+    nixpkgsUnstable = {
+      # TODO: this should be changed from 'master' to 'nixos-unstable' when the
+      # pnpm.fetchDeps.fetcherVersion option lands in nixos-unstable (it's not clear how long that will
+      # be)
+      url = "github:NixOS/nixpkgs/master";
+    };
+
+    nixos-generators.url = "github:nix-community/nixos-generators";
   };
 
   outputs =
     {
       self,
       nixpkgs,
-      crate2nix,
-      agenix,
       deploy-rs,
       fenix,
+      crane,
+      nixos-generators,
       ...
     }@inputs:
     let
@@ -35,11 +44,6 @@
         "aarch64-darwin"
       ];
 
-      rustToolchain = fenix.packages.x86_64-linux.fromToolchainFile {
-        file = ./rust-toolchain.toml;
-        sha256 = "sha256-KUm16pHj+cRedf8vxs/Hd2YWxpOrWZ7UOrwhILdSJBU=";
-      };
-
       nixpkgsFor =
         system:
         import nixpkgs {
@@ -47,13 +51,36 @@
           config.allowUnfree = true;
         };
 
+      rustToolchainFor =
+        system:
+        inputs.fenix.packages.${system}.fromToolchainFile {
+          file = ./rust-toolchain.toml;
+          sha256 = "sha256-SJwZ8g0zF2WrKDVmHrVG3pD2RGoQeo24MEXnNx5FyuI=";
+        };
+
       pkgsLinux = nixpkgsFor linuxSystem;
+      rustToolchainLinux = rustToolchainFor linuxSystem;
+
+      craneLib = (crane.mkLib pkgsLinux).overrideToolchain rustToolchainLinux;
+
+      cargoArtifacts = craneLib.buildDepsOnly {
+        src = craneLib.cleanCargoSource ./.;
+        strictDeps = true;
+        nativeBuildInputs = [
+          pkgsLinux.pkg-config
+        ];
+
+        buildInputs = [
+          pkgsLinux.openssl
+        ];
+      };
 
       # Generate devShells for each system
       devShellForSystem =
         system:
         let
           pkgs = nixpkgsFor system;
+          rustToolchain = rustToolchainFor system;
 
           # macOS-specific configurations for libraries
           darwinDeps =
@@ -72,6 +99,7 @@
           buildInputs =
             with pkgs;
             [
+              darkhttpd
               lld
               rustToolchain
               openssl
@@ -80,15 +108,24 @@
               clippy
               pkg-config
               pnpm_9
-              nodejs_23
+              nodejs_24
               sqlx-cli
               biome
+              wasm-pack
+              vscode-langservers-extracted
+              wasm-bindgen-cli
+              esbuild
+              python312Packages.jupyter-server
+              python312Packages.jupyter-core
+              python312Packages.websocket-client
+              python312Packages.requests
+              python312Packages.ipykernel
+              python3
             ]
             ++ darwinDeps
             ++ [
               inputs.agenix.packages.${system}.agenix
               inputs.deploy-rs.packages.${system}.default
-              inputs.crate2nix.packages.${system}.default
             ];
 
           # macOS-specific environment variables for OpenSSL and pkg-config
@@ -114,6 +151,25 @@
           '';
         };
 
+      # NOTE: this is not currently used, but was painful to build and might be useful in the future.
+      # Wraps the typical `deploy-rs.lib.${linuxSystem}.activate.nixos` activation function
+      # with a custom script that can run additional health checks. The script runs on the remote host
+      # and if it fails the whole deployment will fail.
+      # use:
+      # `deploy.nodes.${host}.profiles.system.path = healthcheckWrapper self.nixosConfigurations.host;`
+      healthcheckWrapper =
+        nixosConfiguration:
+        let
+          defaultNixos = deploy-rs.lib.${linuxSystem}.activate.nixos nixosConfiguration;
+
+          healthcheckWrapperScript = pkgsLinux.writeShellScriptBin "healthcheck-wrapper-script" ''
+            PROFILE=${defaultNixos}
+            # insert healthchecks
+            ${defaultNixos}/deploy-rs-activate
+          '';
+        in
+        deploy-rs.lib.${linuxSystem}.activate.custom healthcheckWrapperScript
+          "./bin/healthcheck-wrapper-script";
     in
     {
       # Create devShells for all supported systems
@@ -126,27 +182,120 @@
         }) devShellSystems
       );
 
+      # Example of how to build and test individual package built by nix:
+      # nix build .#packages.x86_64-linux.automerge
+      # node ./result/main.cjs
+      packages = {
+        x86_64-linux = {
+          catcolabApi = pkgsLinux.stdenv.mkDerivation {
+            pname = "catcolab-api";
+            version = "0.1.0";
+
+            src = ./packages/backend/pkg;
+
+            installPhase = ''
+              mkdir -p $out
+              cp -r * $out/
+            '';
+          };
+
+          backend = pkgsLinux.callPackage ./packages/backend/default.nix {
+            inherit craneLib cargoArtifacts self;
+            pkgs = pkgsLinux;
+          };
+
+          migrator = pkgsLinux.callPackage ./packages/migrator/default.nix {
+            inherit craneLib cargoArtifacts;
+            pkgs = pkgsLinux;
+          };
+
+          notebook-types-node = pkgsLinux.callPackage ./packages/notebook-types/default.nix {
+            inherit craneLib cargoArtifacts;
+            pkgs = pkgsLinux;
+          };
+
+          catlog-wasm-browser = pkgsLinux.callPackage ./packages/catlog-wasm/default.nix {
+            inherit craneLib cargoArtifacts;
+            pkgs = pkgsLinux;
+          };
+
+          automerge = pkgsLinux.callPackage ./packages/automerge-doc-server/default.nix {
+            inherit inputs rustToolchainLinux self;
+          };
+
+          frontend = pkgsLinux.callPackage ./packages/frontend/default.nix {
+            inherit inputs rustToolchainLinux self;
+          };
+
+          # VMs built with `nixos-rebuild build-vm` (like `nix build
+          # .#nixosConfigurations.catcolab-vm.config.system.build.vm`) are not the same
+          # as "traditional" VMs, which causes deploy-rs to fail when deploying to them.
+          # https://github.com/serokell/deploy-rs/issues/85#issuecomment-885782350
+          #
+          # This is worked around by creating a full featured VM image.
+          #
+          # use:
+          # nix build .#catcolab-vm
+          # cp result/catcolab-vm.qcow2 catcolab-vm.qcow2
+          # db-utils vm start
+          # deploy -s .#catcolab-vm
+          catcolab-vm = pkgsLinux.stdenv.mkDerivation {
+            name = "catcolab-vm";
+            src = nixos-generators.nixosGenerate {
+              system = "x86_64-linux";
+              format = "qcow";
+
+              modules = [
+                ./infrastructure/hosts/catcolab-vm
+              ];
+
+              specialArgs = {
+                inherit inputs self;
+                rustToolchain = rustToolchainLinux;
+              };
+            };
+            installPhase = ''
+              mkdir -p $out
+              cp $src/nixos.qcow2 $out/catcolab-vm.qcow2
+            '';
+          };
+        };
+      };
+
       # Create a NixOS configuration for each host
       nixosConfigurations = {
         catcolab = nixpkgs.lib.nixosSystem {
           specialArgs = {
-            inherit inputs rustToolchain;
+            inherit inputs self;
+            rustToolchain = rustToolchainLinux;
           };
           system = linuxSystem;
           modules = [
             ./infrastructure/hosts/catcolab
-            agenix.nixosModules.age
           ];
           pkgs = pkgsLinux;
         };
         catcolab-next = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs rustToolchain; };
+          specialArgs = {
+            inherit inputs self;
+            rustToolchain = rustToolchainLinux;
+          };
           system = linuxSystem;
           modules = [
             ./infrastructure/hosts/catcolab-next
-            agenix.nixosModules.age
           ];
           pkgs = pkgsLinux;
+        };
+
+        catcolab-vm = nixpkgs.lib.nixosSystem {
+          system = linuxSystem;
+          modules = [
+            ./infrastructure/hosts/catcolab-vm
+          ];
+          specialArgs = {
+            inherit inputs self;
+            rustToolchain = rustToolchainLinux;
+          };
         };
       };
 
@@ -154,6 +303,8 @@
         catcolab = {
           hostname = "backend.catcolab.org";
           profiles.system = {
+            # TODO: can be changed to catcolab after the next deploy (the host needs to first update the
+            # permissions of the catcolab user)
             sshUser = "root";
             path = deploy-rs.lib.${linuxSystem}.activate.nixos self.nixosConfigurations.catcolab;
           };
@@ -161,10 +312,36 @@
         catcolab-next = {
           hostname = "backend-next.catcolab.org";
           profiles.system = {
-            sshUser = "root";
+            sshUser = "catcolab";
+            user = "root";
             path = deploy-rs.lib.${linuxSystem}.activate.nixos self.nixosConfigurations.catcolab-next;
           };
         };
+        catcolab-vm = {
+          hostname = "localhost";
+          fastConnection = true;
+          profiles.system = {
+            sshOpts = [
+              "-p"
+              "2221"
+            ];
+            sshUser = "catcolab";
+            path = deploy-rs.lib.${linuxSystem}.activate.nixos self.nixosConfigurations.catcolab-vm;
+            user = "root";
+          };
+        };
       };
+
+      # Temporarily disabled until more meaningful tests are developed. Keeping the frontend dependecies
+      # up to date is currently not worth the hassle.
+      # checks.x86_64-linux.integrationTests = import ./infrastructure/tests/integration.nix {
+      #   inherit
+      #     nixpkgs
+      #     inputs
+      #     self
+      #     linuxSystem
+      #     ;
+      #   rustToolchain = rustToolchainLinux;
+      # };
     };
 }

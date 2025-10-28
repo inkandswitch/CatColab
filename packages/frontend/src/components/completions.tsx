@@ -1,5 +1,6 @@
-import type { KbdKey } from "@solid-primitives/keyboard";
 import { For, type JSX, Show, createMemo, createSignal, onMount } from "solid-js";
+
+import type { KbdKey } from "../util/keyboard";
 
 import "./completions.css";
 
@@ -45,7 +46,14 @@ export function Completions(props: {
     const remainingCompletions = createMemo(() => {
         setPresumptive(0);
         const prefix = props.text?.toLowerCase() ?? "";
-        return props.completions?.filter((c) => c.name.toLowerCase().startsWith(prefix));
+        const starts = props.completions?.filter((c) => c.name.toLowerCase().startsWith(prefix));
+        const startsNames = new Set(starts.map((c) => c.name.toLowerCase()));
+        const includes =
+            props.completions?.filter(
+                (c) =>
+                    c.name.toLowerCase().includes(prefix) && !startsNames.has(c.name.toLowerCase()),
+            ) ?? [];
+        return starts.concat(includes);
     });
 
     const selectPresumptive = () => {
@@ -89,7 +97,7 @@ export function Completions(props: {
                             <div class="completion-name">{c.name}</div>
                             <Show when={c.shortcut}>
                                 <div class="completion-shortcut">
-                                    <KbdShortcut shortcut={c.shortcut as KbdKey[]} />
+                                    <KbdShortcut shortcut={c.shortcut ?? []} />
                                 </div>
                             </Show>
                         </div>

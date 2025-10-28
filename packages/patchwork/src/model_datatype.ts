@@ -22,7 +22,11 @@ export type ModelDoc = HasVersionControlMetadata<Uuid, Cell<unknown>> & {
     analysisDocUrl: AutomergeUrl;
 };
 
-export const patchesToAnnotations = (doc: ModelDoc, _docBefore: ModelDoc, patches: A.Patch[]) => {
+export const patchesToAnnotations = (
+    doc: ModelDoc,
+    _docBefore: ModelDoc,
+    patches: A.Patch[]
+) => {
     const changedCells = new Set<Uuid>();
     const annotations: Annotation<Uuid, Cell<unknown>>[] = [];
 
@@ -30,7 +34,7 @@ export const patchesToAnnotations = (doc: ModelDoc, _docBefore: ModelDoc, patche
     // ... but it works if we look up the heads in the history
     const headsBefore = A.getHeads(_docBefore);
     const docBefore = A.getHistory(doc).find(
-        ({ change }) => change.hash === headsBefore[0],
+        ({ change }) => change.hash === headsBefore[0]
     )?.snapshot;
 
     patches.forEach((patch) => {
@@ -51,17 +55,17 @@ export const patchesToAnnotations = (doc: ModelDoc, _docBefore: ModelDoc, patche
                     annotations.push({
                         type: "deleted",
                         deleted: cell,
-                        anchor: cell.id,
+                        anchor: cell!.id,
                     } as Annotation<Uuid, Cell<unknown>>);
                     return;
                 }
                 case "insert": {
-                    changedCells.add(doc.notebook.cells[cellIndex].id);
+                    changedCells.add(doc.notebook.cells[cellIndex]!.id);
                     const cell = doc.notebook.cells[cellIndex];
                     annotations.push({
                         type: "added",
                         added: cell,
-                        anchor: cell.id,
+                        anchor: cell!.id,
                     } as Annotation<Uuid, Cell<unknown>>);
                     return;
                 }
@@ -73,19 +77,21 @@ export const patchesToAnnotations = (doc: ModelDoc, _docBefore: ModelDoc, patche
             case "splice": {
                 const after = doc.notebook.cells[cellIndex];
 
-                if (changedCells.has(after.id)) {
+                if (changedCells.has(after!.id)) {
                     return;
                 }
 
-                const before = docBefore?.notebook.cells.find((cell) => cell.id === after.id);
+                const before = docBefore?.notebook.cells.find(
+                    (cell) => cell.id === after!.id
+                );
 
                 if (!before) {
                     annotations.push({
                         type: "added",
                         added: after,
-                        anchor: after.id,
+                        anchor: after!.id,
                     } as Annotation<Uuid, Cell<unknown>>);
-                    changedCells.add(after.id);
+                    changedCells.add(after!.id);
                     return;
                 }
 
@@ -93,9 +99,9 @@ export const patchesToAnnotations = (doc: ModelDoc, _docBefore: ModelDoc, patche
                     type: "changed",
                     before: before,
                     after: after,
-                    anchor: after.id,
+                    anchor: after!.id,
                 } as Annotation<Uuid, Cell<unknown>>);
-                changedCells.add(after.id);
+                changedCells.add(after!.id);
                 return;
             }
         }
@@ -105,7 +111,9 @@ export const patchesToAnnotations = (doc: ModelDoc, _docBefore: ModelDoc, patche
 };
 
 const valueOfAnchor = (doc: ModelDoc, anchor: Uuid): Cell<unknown> => {
-    return doc.notebook.cells.find((cell) => cell.id === anchor) as Cell<unknown>;
+    return doc.notebook.cells.find(
+        (cell) => cell.id === anchor
+    ) as Cell<unknown>;
 };
 
 const sortAnchorsBy = (doc: ModelDoc, anchor: Uuid): number => {
@@ -128,12 +136,14 @@ export const includeChangeInHistory = (doc: ModelDoc) => {
     ].map((path) => A.getObjectId(doc, path));
 
     return (decodedChange: DecodedChangeWithMetadata) => {
-        return decodedChange.ops.every((op) => !metadataObjIds.includes(op.obj));
+        return decodedChange.ops.every(
+            (op) => !metadataObjIds.includes(op.obj)
+        );
     };
 };
 
 export const markCopy = (doc: ModelDoc) => {
-    doc.name = "Copy of " + doc.name;
+    doc.name = `Copy of ${doc.name}`;
 };
 
 const setTitle = async (doc: ModelDoc, title: string) => {

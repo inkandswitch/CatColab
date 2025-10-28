@@ -2,58 +2,26 @@ import ChevronLeft from "lucide-solid/icons/chevron-left";
 import ChevronRight from "lucide-solid/icons/chevron-right";
 import { Show, createMemo } from "solid-js";
 
-import type { DblModel, MotifsOptions } from "catlog-wasm";
+import type { MotifOccurrence } from "catlog-wasm";
 import type { ModelAnalysisProps } from "../../analysis";
 import { Foldable, FormGroup, IconButton, InputField } from "../../components";
-
-import type { ModelAnalysisMeta } from "../../theory";
-import { ModelGraphviz } from "./model_graph";
+import { GraphvizSVG } from "../../visualization";
+import type { MotifFinder, MotifFindingAnalysisContent } from "./checker_types";
+import { modelToGraphviz } from "./model_graph";
 
 import "./submodel_graphs.css";
 
-type FindSubmodelsFn = (model: DblModel, options: MotifsOptions) => DblModel[];
-
-/** Configuration and state of a submodels analysis. */
-export type SubmodelsAnalysisContent = {
-    /** Index of active submodel. */
-    activeIndex: number;
-
-    /** Maximum length of paths used in morphism search. */
-    maxPathLength?: number | null;
-};
-
-/** Configure a submodel analysis for use with a double theory. */
-export function configureSubmodelsAnalysis(options: {
-    id: string;
-    name: string;
-    description?: string;
-    findSubmodels: FindSubmodelsFn;
-}): ModelAnalysisMeta<SubmodelsAnalysisContent> {
-    const { id, name, description, findSubmodels } = options;
-    return {
-        id,
-        name,
-        description,
-        component: (props) => (
-            <SubmodelsAnalysis title={name} findSubmodels={findSubmodels} {...props} />
-        ),
-        initialContent: () => ({
-            activeIndex: 0,
-            maxPathLength: 5,
-        }),
-    };
-}
-
-function SubmodelsAnalysis(
+/** Find submodels of a model and visualize them as graphs. */
+export default function SubmodelGraphs(
     props: {
-        findSubmodels: FindSubmodelsFn;
+        findSubmodels: MotifFinder;
         title?: string;
-    } & ModelAnalysisProps<SubmodelsAnalysisContent>,
+    } & ModelAnalysisProps<MotifFindingAnalysisContent>,
 ) {
-    const submodels = createMemo<DblModel[]>(
+    const submodels = createMemo<MotifOccurrence[]>(
         () => {
             const validated = props.liveModel.validatedModel();
-            if (validated?.result.tag !== "Ok") {
+            if (validated?.tag !== "Valid") {
                 return [];
             }
             return props.findSubmodels(validated.model, {
@@ -72,22 +40,6 @@ function SubmodelsAnalysis(
     const decIndex = () => setIndex(Math.max(0, index() - 1));
     const incIndex = () => setIndex(Math.min(index() + 1, submodels().length - 1));
 
-    const filteredModel = () => {
-        const submodel = submodels()[index()];
-        if (!submodel) {
-            return [];
-        }
-        return props.liveModel.formalJudgments().filter((judgment) => {
-            if (judgment.tag === "object") {
-                return submodel.hasOb({ tag: "Basic", content: judgment.id });
-            } else if (judgment.tag === "morphism") {
-                return submodel.hasMor({ tag: "Basic", content: judgment.id });
-            } else {
-                return false;
-            }
-        });
-    };
-
     const indexButtons = (
         <div class="index-buttons">
             <IconButton onClick={decIndex} disabled={index() <= 0}>
@@ -105,6 +57,21 @@ function SubmodelsAnalysis(
             </IconButton>
         </div>
     );
+
+    const activeGraph = () => {
+        const theory = props.liveModel.theory();
+        const model = props.liveModel.elaboratedModel();
+        const submodel = submodels()[index()];
+        if (theory && model && submodel) {
+            return modelToGraphviz(
+                model,
+                theory,
+                undefined,
+                submodel.obGenerators,
+                submodel.morGenerators,
+            );
+        }
+    };
 
     return (
         <div class="submodel-graphs">
@@ -135,13 +102,16 @@ function SubmodelsAnalysis(
                     </Show>
                 </FormGroup>
             </Foldable>
-            <ModelGraphviz
-                model={filteredModel()}
-                theory={props.liveModel.theory()}
-                options={{
-                    engine: "dot",
-                }}
-            />
+            <Show when={activeGraph()}>
+                {(graph) => (
+                    <GraphvizSVG
+                        graph={graph()}
+                        options={{
+                            engine: "dot",
+                        }}
+                    />
+                )}
+            </Show>
         </div>
     );
 }

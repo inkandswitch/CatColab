@@ -6,16 +6,24 @@ import type * as GraphLayout from "./graph_layout";
 import type * as GraphvizJSON from "./graphviz_json";
 import type { ArrowStyle } from "./types";
 
-/** Asynchronously import and load Viz.js.
+/** Top-level attributes of a Graphviz graph.
+
+Viz.js doesn't directly export this type, so for convenience we do so here.
  */
+export type GraphvizAttributes = {
+    graph?: Viz.Graph["graphAttributes"];
+    node?: Viz.Graph["nodeAttributes"];
+    edge?: Viz.Graph["edgeAttributes"];
+};
+
+/** Asynchronously import and load Viz.js. */
 export async function loadViz() {
     const { instance } = await import("@viz-js/viz");
     const viz = await instance();
     return viz;
 }
 
-/** Lay out a graph using Graphviz.
- */
+/** Lay out a graph using Graphviz. */
 export function vizLayoutGraph(viz: Viz.Viz, graph: Viz.Graph, options?: Viz.RenderOptions) {
     return parseGraphvizJSON(vizRenderJSON0(viz, graph, options));
 }
@@ -79,7 +87,7 @@ export function parseGraphvizJSON(graphviz: GraphvizJSON.Graph): GraphLayout.Gra
             // Omit invisible edges, used to tweak the layout in Graphviz.
             continue;
         }
-        const [sourceNode, targetNode] = [nodeByNumber(edge.head), nodeByNumber(edge.tail)];
+        const [sourceNode, targetNode] = [nodeByNumber(edge.tail), nodeByNumber(edge.head)];
         invariant(sourceNode && targetNode, "Source and target nodes should be defined");
 
         const spline = parseSpline(edge.pos);

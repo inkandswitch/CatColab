@@ -1,18 +1,32 @@
 {
+  craneLib,
+  cargoArtifacts,
   pkgs,
-  rustToolchain,
-  ...
 }:
-let
-  # see comment in packages/backend/default.nix
-  buildRustCrateForPkgs =
-    crate:
-    pkgs.buildRustCrate.override {
-      rustc = rustToolchain;
-      cargo = rustToolchain;
-    };
+craneLib.buildPackage {
+  inherit cargoArtifacts;
+  inherit (craneLib.crateNameFromCargoToml { cargoToml = ./Cargo.toml; }) version pname;
 
-  cargoNix = import ../../Cargo.nix { inherit pkgs buildRustCrateForPkgs; };
-  migrator = cargoNix.workspaceMembers.migrator.build;
-in
-migrator
+  cargoExtraArgs = "-p migrator";
+
+  nativeBuildInputs = [
+    pkgs.pkg-config
+  ];
+
+  buildInputs = [
+    pkgs.openssl
+  ];
+
+  src = pkgs.lib.fileset.toSource {
+    root = ../..;
+    fileset = pkgs.lib.fileset.unions [
+      ../../Cargo.toml
+      ../../Cargo.lock
+      (craneLib.fileset.commonCargoSources ./.)
+    ];
+  };
+
+  meta = {
+    mainProgram = "migrator";
+  };
+}

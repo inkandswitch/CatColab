@@ -3,11 +3,18 @@ import { Cell, Uuid } from "catlog-wasm";
 import React from "react";
 import { Component, createResource, For, Match, Show, Switch } from "solid-js";
 import { AnnotationsPluginImplementation } from "../../../../patchwork/sdk/dist/annotations/types";
-import { ApiContext } from "../../frontend/src/api";
-import { getLiveModel, LiveModelContext } from "../../frontend/src/model";
+import {
+    createModelLibraryWithRepo,
+    LiveModelContext,
+} from "../../frontend/src/model";
 import { ModelCellEditor } from "../../frontend/src/model/model_editor";
-import { CellActions, FormalCell, RichTextCell } from "../../frontend/src/notebook";
-import { stdTheories, TheoryLibraryContext } from "../../frontend/src/stdlib";
+import {
+    CellActions,
+    FormalCell,
+    RichTextCell,
+} from "../../frontend/src/notebook";
+import { stdTheories } from "../../frontend/src/stdlib";
+import { TheoryLibraryContext } from "../../frontend/src/theory";
 import {
     CellAnnotationsViewProps,
     CellAnnotationsViewWrapper,
@@ -48,21 +55,20 @@ const CellView: Component<{
 };
 
 function CellAnnotationsView(props: CellAnnotationsViewProps) {
-    // Typescript gets confused because the patchwork and the frontend package both import "@automerge/automerge-repo" in their package.json
-    const api = { repo: props.repo as any };
+    const models = createModelLibraryWithRepo(props.repo as any, stdTheories);
 
     const [liveModel] = createResource(
         () => props.docUrl,
-        async (refId) => {
+        async (docUrl) => {
             try {
-                return await getLiveModel(refId, api, stdTheories);
+                return await models.getLiveModel(docUrl as any);
             } catch (error) {
                 console.error("=== Model Loading Failed ===");
                 console.error("Error:", error);
                 console.error("Stack:", (error as Error).stack);
                 throw error;
             }
-        },
+        }
     );
 
     console.log("annotations view", props);
@@ -74,94 +80,113 @@ function CellAnnotationsView(props: CellAnnotationsViewProps) {
                     <div>⏳ Loading model...</div>
                 </Show>
                 <Show when={liveModel.error}>
-                    <div>❌ Error loading model: {liveModel.error?.message || "Unknown error"}</div>
+                    <div>
+                        ❌ Error loading model:{" "}
+                        {liveModel.error?.message || "Unknown error"}
+                    </div>
                 </Show>
-                <Show when={liveModel() && !liveModel.loading && !liveModel.error}>
+                <Show
+                    when={liveModel() && !liveModel.loading && !liveModel.error}
+                >
                     {(_) => {
                         return (
-                            <ApiContext.Provider value={api}>
-                                <TheoryLibraryContext.Provider value={stdTheories}>
-                                    <LiveModelContext.Provider value={() => liveModel()!}>
-                                        <For each={props.annotations}>
-                                            {(annotation) => {
-                                                switch (annotation.type) {
-                                                    case "added":
-                                                        return (
-                                                            <div class="annotation annotation-added">
-                                                                <CellView
-                                                                    cell={annotation.pointer.value}
-                                                                />
+                            <TheoryLibraryContext.Provider value={stdTheories}>
+                                <LiveModelContext.Provider
+                                    value={() => liveModel()!}
+                                >
+                                    <For each={props.annotations}>
+                                        {(annotation) => {
+                                            switch (annotation.type) {
+                                                case "added":
+                                                    return (
+                                                        <div class="annotation annotation-added">
+                                                            <CellView
+                                                                cell={
+                                                                    annotation
+                                                                        .pointer
+                                                                        .value
+                                                                }
+                                                            />
+                                                        </div>
+                                                    );
+                                                case "deleted":
+                                                    return (
+                                                        <div class="annotation annotation-deleted">
+                                                            <CellView
+                                                                cell={
+                                                                    annotation
+                                                                        .pointer
+                                                                        .value
+                                                                }
+                                                            />
+                                                        </div>
+                                                    );
+                                                case "changed":
+                                                    return (
+                                                        <div class="annotation-group">
+                                                            <div class="annotation-label">
+                                                                Before
                                                             </div>
-                                                        );
-                                                    case "deleted":
-                                                        return (
-                                                            <div class="annotation annotation-deleted">
-                                                                <CellView
-                                                                    cell={annotation.pointer.value}
-                                                                />
-                                                            </div>
-                                                        );
-                                                    case "changed":
-                                                        return (
-                                                            <div class="annotation-group">
-                                                                <div class="annotation-label">
-                                                                    Before
-                                                                </div>
-                                                                <div class="annotation">
-                                                                    <CellView
-                                                                        cell={
-                                                                            annotation.before.value
-                                                                        }
-                                                                    />
-                                                                </div>
-                                                                <div class="annotation-label">
-                                                                    After
-                                                                </div>
-                                                                <div class="annotation annotation-changed">
-                                                                    <CellView
-                                                                        cell={
-                                                                            annotation.after.value
-                                                                        }
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    case "comment":
-                                                        if (
-                                                            props.annotations.some(
-                                                                (annotation) =>
-                                                                    annotation.type !== "comment",
-                                                            )
-                                                        ) {
-                                                            return null;
-                                                        }
-
-                                                        return (
                                                             <div class="annotation">
-                                                                <For
-                                                                    each={
-                                                                        annotation.discussion
-                                                                            .pointers
+                                                                <CellView
+                                                                    cell={
+                                                                        annotation
+                                                                            .before
+                                                                            .value
                                                                     }
-                                                                >
-                                                                    {(pointer) => (
-                                                                        <div class="annotation">
-                                                                            <CellView
-                                                                                cell={
-                                                                                    pointer.value as Cell<unknown>
-                                                                                }
-                                                                            />
-                                                                        </div>
-                                                                    )}
-                                                                </For>
+                                                                />
                                                             </div>
-                                                        );
-                                                }
-                                            }}
-                                        </For>
-                                    </LiveModelContext.Provider>
-                                </TheoryLibraryContext.Provider>
-                            </ApiContext.Provider>
+                                                            <div class="annotation-label">
+                                                                After
+                                                            </div>
+                                                            <div class="annotation annotation-changed">
+                                                                <CellView
+                                                                    cell={
+                                                                        annotation
+                                                                            .after
+                                                                            .value
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                case "comment":
+                                                    if (
+                                                        props.annotations.some(
+                                                            (annotation) =>
+                                                                annotation.type !==
+                                                                "comment"
+                                                        )
+                                                    ) {
+                                                        return null;
+                                                    }
+
+                                                    return (
+                                                        <div class="annotation">
+                                                            <For
+                                                                each={
+                                                                    annotation
+                                                                        .discussion
+                                                                        .pointers
+                                                                }
+                                                            >
+                                                                {(pointer) => (
+                                                                    <div class="annotation">
+                                                                        <CellView
+                                                                            cell={
+                                                                                pointer.value as Cell<unknown>
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                            </For>
+                                                        </div>
+                                                    );
+                                            }
+                                        }}
+                                    </For>
+                                </LiveModelContext.Provider>
+                            </TheoryLibraryContext.Provider>
                         );
                     }}
                 </Show>
@@ -170,8 +195,13 @@ function CellAnnotationsView(props: CellAnnotationsViewProps) {
     );
 }
 
-export const plugin: AnnotationsPluginImplementation<ModelDoc, Uuid, Cell<unknown>> = {
+export const plugin: AnnotationsPluginImplementation<
+    ModelDoc,
+    Uuid,
+    Cell<unknown>
+> = {
     patchesToAnnotation: patchesToAnnotation<ModelDoc>,
-    targetToPointer: (doc, target): CellPointer<ModelDoc> => new CellPointer<ModelDoc>(doc, target),
+    targetToPointer: (doc, target): CellPointer<ModelDoc> =>
+        new CellPointer<ModelDoc>(doc, target),
     AnnotationsView,
 };

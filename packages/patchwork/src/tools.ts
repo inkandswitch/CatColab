@@ -1,5 +1,9 @@
 import { Repo } from "@automerge/automerge-repo";
-import { useDocHandle, useDocument, useRepo } from "@automerge/automerge-repo-react-hooks";
+import {
+    useDocHandle,
+    useDocument,
+    useRepo,
+} from "@automerge/automerge-repo-react-hooks";
 import { EditorProps } from "@patchwork/sdk";
 import { useAllAnnotations } from "@patchwork/sdk/annotations";
 import { Cell, Uuid } from "catlog-wasm";
@@ -19,14 +23,18 @@ export type SolidToolProps = {
     annotationsContextValue: Accessor<ReturnType<typeof useAllAnnotations>>;
 };
 
-export const ModelTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({ docUrl }) => {
+export const ModelTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
+    docUrl,
+}) => {
     return React.createElement(Tool, {
         docUrl,
         solidComponent: ModelPaneComponent,
     });
 };
 
-export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({ docUrl }) => {
+export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
+    docUrl,
+}) => {
     const [modelDoc] = useDocument<ModelDoc>(docUrl, { suspense: true });
 
     const { docLinksWithAnnotations } = useAllAnnotations();
@@ -35,19 +43,24 @@ export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({ docUr
 
     const resolvedAnalysisDocUrl = useMemo(
         () =>
-            docLinksWithAnnotations.find((a) => a.main?.url === analysisDocUrl)?.url ??
-            analysisDocUrl,
-        [modelDoc.analysisDocUrl, docLinksWithAnnotations],
+            docLinksWithAnnotations.find((a) => a.main?.url === analysisDocUrl)
+                ?.url ?? analysisDocUrl,
+        [modelDoc.analysisDocUrl, docLinksWithAnnotations]
     );
 
     const resolvedModelDocUrl = useMemo(
-        () => docLinksWithAnnotations.find((a) => a.main?.url === docUrl)?.url ?? docUrl,
-        [docUrl, docLinksWithAnnotations],
+        () =>
+            docLinksWithAnnotations.find((a) => a.main?.url === docUrl)?.url ??
+            docUrl,
+        [docUrl, docLinksWithAnnotations]
     );
 
-    const analysisDocHandle = useDocHandle<AnalysisDoc>(resolvedAnalysisDocUrl, {
-        suspense: true,
-    });
+    const analysisDocHandle = useDocHandle<AnalysisDoc>(
+        resolvedAnalysisDocUrl,
+        {
+            suspense: true,
+        }
+    );
 
     // hack: update the analysis document to point to the current model document
     //
@@ -85,7 +98,9 @@ export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({ docUr
     });
 };
 
-export const SideBySideTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = (props) => {
+export const SideBySideTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = (
+    props
+) => {
     return React.createElement("div", { className: "split-view-container" }, [
         React.createElement("div", { className: "split-view-pane" }, [
             React.createElement(ModelTool, props),
@@ -113,7 +128,7 @@ const Tool: React.FC<
 
     const [getAnnotationsContextValue, setAnnotationsContextValue] = useMemo(
         () => createSignal<ReturnType<typeof useAllAnnotations> | null>(null),
-        [],
+        []
     );
 
     // update annoations context whenever it changes
@@ -142,9 +157,10 @@ const Tool: React.FC<
                     createComponent(solidComponent, {
                         docUrl,
                         repo,
-                        annotationsContextValue: () => getAnnotationsContextValue()!,
+                        annotationsContextValue: () =>
+                            getAnnotationsContextValue()!,
                     }),
-                solidContainerRef.current,
+                solidContainerRef.current
             );
         }
 

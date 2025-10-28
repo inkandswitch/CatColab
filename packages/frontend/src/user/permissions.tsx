@@ -1,5 +1,4 @@
-import { getAuth, signOut } from "firebase/auth";
-import { useAuth, useFirebaseApp } from "solid-firebase";
+import { useNavigate } from "@solidjs/router";
 import {
     type ComponentProps,
     For,
@@ -13,17 +12,31 @@ import {
 import { createStore, produce } from "solid-js/store";
 import invariant from "tiny-invariant";
 
-import type { NewPermissions, PermissionLevel, Permissions, UserSummary } from "catcolab-api";
-import { useApi } from "../api";
-import { Dialog, FormGroup, IconButton, SelectField, Warning } from "../components";
+import type {
+    NewPermissions,
+    PermissionLevel,
+    Permissions,
+    UserSummary,
+} from "catcolab-api";
+import type { Document } from "catlog-wasm";
+import { type LiveDoc, useApi } from "../api";
+import {
+    Dialog,
+    FormGroup,
+    IconButton,
+    SelectField,
+    Warning,
+} from "../components";
 import { deepCopyJSON } from "../util/deepcopy";
 import { Login } from "./login";
 import { NameUser, UserInput } from "./username";
 
+import Copy from "lucide-solid/icons/copy";
 import FileLock from "lucide-solid/icons/file-lock-2";
 import FilePen from "lucide-solid/icons/file-pen";
 import FileUser from "lucide-solid/icons/file-user";
 import Globe from "lucide-solid/icons/globe";
+import Link2 from "lucide-solid/icons/link-2";
 
 import "./permissions.css";
 
@@ -60,7 +73,7 @@ export function PermissionsForm(props: {
             const result = await api.rpc.get_permissions.query(refId);
             invariant(result.tag === "Ok");
             return result.content;
-        },
+        }
     );
 
     createEffect(() => {
@@ -71,27 +84,45 @@ export function PermissionsForm(props: {
     });
 
     const addEntry = (user: UserSummary) => {
-        if (!state.users || state.users.some((perm) => perm.user.id === user.id)) {
+        if (
+            !state.users ||
+            state.users.some((perm) => perm.user.id === user.id)
+        ) {
             return;
         }
-        setState(produce((state) => state.users?.push({ user, level: "Read" })));
+        setState(
+            produce((state) => state.users?.push({ user, level: "Read" }))
+        );
     };
 
     const willAddOwners = (): boolean =>
         state.users?.some(
-            (perm, i) => perm.level === "Own" && currentPermissions()?.users?.[i]?.level !== "Own",
+            (perm, i) =>
+                perm.level === "Own" &&
+                currentPermissions()?.users?.[i]?.level !== "Own"
         ) ?? false;
 
     const updatePermissions = async () => {
         invariant(props.refId);
         invariant(!currentPermissions.loading && !currentPermissions.error);
-        const result = await api.rpc.set_permissions.mutate(props.refId, pendingPermissions());
+        const result = await api.rpc.set_permissions.mutate(
+            props.refId,
+            pendingPermissions()
+        );
         invariant(result.tag === "Ok");
     };
 
     const submitPermissions = async () => {
         await updatePermissions();
         props.onComplete?.();
+    };
+
+    const copyToClipboard = async () => {
+        if (navigator.clipboard) {
+            await navigator.clipboard.writeText(window.location.href);
+        } else {
+            throw new Error("Link to document could not be copied.");
+        }
     };
 
     // Bypass standard form submission so that pressing Enter does not submit.
@@ -113,11 +144,20 @@ export function PermissionsForm(props: {
                     <option value="Write">Anyone can edit</option>
                 </SelectField>
                 <Show
-                    when={state.anyone === "Write" && state.anyone !== currentPermissions()?.anyone}
+                    when={
+                        state.anyone === "Write" &&
+                        state.anyone !== currentPermissions()?.anyone
+                    }
                 >
                     <Warning>
-                        <p>{"Anyone with the link will be able to edit the document."}</p>
-                        <p>{"This setting is convenient but it is not secure."}</p>
+                        <p>
+                            {
+                                "Anyone with the link will be able to edit the document."
+                            }
+                        </p>
+                        <p>
+                            {"This setting is convenient but it is not secure."}
+                        </p>
                     </Warning>
                 </Show>
             </FormGroup>
@@ -133,7 +173,10 @@ export function PermissionsForm(props: {
                                 <select
                                     id={`entry-${i()}`}
                                     value={userPerm.level ?? ""}
-                                    disabled={currentPermissions()?.users?.[i()]?.level === "Own"}
+                                    disabled={
+                                        currentPermissions()?.users?.[i()]
+                                            ?.level === "Own"
+                                    }
                                     onInput={(evt) => {
                                         const value = evt.currentTarget.value;
                                         setState(
@@ -143,7 +186,7 @@ export function PermissionsForm(props: {
                                                 user.level = value
                                                     ? (value as PermissionLevel)
                                                     : null;
-                                            }),
+                                            })
                                         );
                                     }}
                                 >
@@ -163,45 +206,73 @@ export function PermissionsForm(props: {
             </FormGroup>
             <Show when={willAddOwners()}>
                 <Warning>
-                    <p>{"Setting these permissions will be an irrevocable action."}</p>
+                    <p>
+                        {
+                            "Setting these permissions will be an irrevocable action."
+                        }
+                    </p>
                     <p>{"Ownership, once granted, cannot be revoked."}</p>
                 </Warning>
             </Show>
-            <button
-                type="button"
-                class="ok"
-                disabled={!props.refId || currentPermissions.loading || currentPermissions.error}
-                onClick={submitPermissions}
-            >
-                Update permissions
-            </button>
+            <div class="permissions-button-container">
+                <button
+                    type="button"
+                    class="button utility"
+                    onClick={copyToClipboard}
+                >
+                    <Link2 />
+                    Copy link
+                </button>
+                <div class="permissions-spacer" />
+                <button
+                    type="button"
+                    class="ok"
+                    disabled={
+                        !props.refId ||
+                        currentPermissions.loading ||
+                        currentPermissions.error
+                    }
+                    onClick={submitPermissions}
+                >
+                    Update permissions
+                </button>
+            </div>
         </form>
     );
 }
 
-/** Toolbar button summarizing the document's permissions.
- */
-export function PermissionsButton(props: {
-    permissions: Permissions;
-    refId?: string;
-}) {
-    const anyone = () => props.permissions.anyone;
-    const user = () => props.permissions.user;
-
-    return (
-        <Switch fallback={<EditorPermissionsButton permissions={props.permissions} />}>
-            <Match when={anyone() === "Own"}>
-                <AnonPermissionsButton />
-            </Match>
-            <Match when={user() === "Own"}>
-                <OwnerPermissionsButton refId={props.refId} />
-            </Match>
-            <Match when={[anyone(), user()].every((level) => level === null || level === "Read")}>
-                <ReadonlyPermissionsButton />
-            </Match>
-        </Switch>
-    );
-}
+/** Toolbar button summarizing the document's permissions. */
+export const PermissionsButton = (props: { liveDoc: LiveDoc }) => (
+    <Show when={props.liveDoc.docRef}>
+        {(docRef) => {
+            const anyone = () => docRef().permissions.anyone;
+            const user = () => docRef().permissions.user;
+            return (
+                <Switch
+                    fallback={
+                        <EditorPermissionsButton
+                            permissions={docRef().permissions}
+                        />
+                    }
+                >
+                    <Match when={anyone() === "Own"}>
+                        <AnonPermissionsButton />
+                    </Match>
+                    <Match when={user() === "Own"}>
+                        <OwnerPermissionsButton refId={docRef().refId} />
+                    </Match>
+                    <Match
+                        when={[anyone(), user()].every(
+                            (level) => level === null || level === "Read"
+                        )}
+                    >
+                        <ReadonlyPermissionsButton doc={props.liveDoc.doc} />
+                    </Match>
+                </Switch>
+            );
+        }}
+    </Show>
+);
 
 function AnonPermissionsButton() {
     const [open, setOpen] = createSignal(false);
@@ -214,7 +285,6 @@ function AnonPermissionsButton() {
     const logOut = async () => {
         setOpen(false);
     };
-
     return (
         <Dialog
             open={open()}
@@ -223,7 +293,8 @@ function AnonPermissionsButton() {
             trigger={AnonPermissionsTrigger}
         >
             <p>
-                This document can be <strong>edited by anyone</strong> with the link.
+                This document can be <strong>edited by anyone</strong> with the
+                link.
             </p>
             <Switch>
                 <Match when={user.data}>
@@ -237,7 +308,9 @@ function AnonPermissionsButton() {
                 </Match>
                 <Match when={!user.loading}>
                     <div class="separator" />
-                    <p>To create documents with restricted permissions, log in.</p>
+                    <p>
+                        To create documents with restricted permissions, log in.
+                    </p>
                     <Login onComplete={() => setOpen(false)} />
                 </Match>
             </Switch>
@@ -258,17 +331,58 @@ const AnonPermissionsTrigger = (props: ComponentProps<"button">) => {
     );
 };
 
-const ReadonlyPermissionsButton = () => {
+const ReadonlyPermissionsButton = (props: { doc: Document }) => {
+    const [open, setOpen] = createSignal(false);
+    const api = useApi();
+    const navigate = useNavigate();
+
+    const onDuplicateDocument = async () => {
+        const newRef = await api.duplicateDoc(props.doc);
+        navigate(`/${props.doc.type}/${newRef}`);
+    };
+
+    return (
+        <Dialog
+            open={open()}
+            onOpenChange={setOpen}
+            title="Read-only document"
+            trigger={ReadonlyPermissionsTrigger}
+        >
+            <p>
+                This document is <strong>read-only</strong>. Any changes that
+                you make will be temporary.
+            </p>
+            <div class="separator" />
+            <form class="permissions" onSubmit={(evt) => evt.preventDefault()}>
+                <div class="duplicate-button-container">
+                    <span>
+                        <button
+                            type="button"
+                            class="button utility"
+                            onClick={onDuplicateDocument}
+                        >
+                            <Copy />
+                            Duplicate {props.doc.type}
+                        </button>
+                    </span>
+                    <span class="duplicate-button-height-text">
+                        {" "}
+                        to make permanent changes.
+                    </span>
+                </div>
+            </form>
+        </Dialog>
+    );
+};
+
+const ReadonlyPermissionsTrigger = (props: ComponentProps<"button">) => {
     const tooltip = (
         <>
-            <p>
-                This document is <strong>read-only</strong>.
-            </p>
-            <p>Any changes that you make will be temporary.</p>
+            This document is <strong>read-only</strong>. Click to see more info.
         </>
     );
     return (
-        <IconButton tooltip={tooltip}>
+        <IconButton {...props} tooltip={tooltip}>
             <FileLock />
         </IconButton>
     );
@@ -279,9 +393,11 @@ const EditorPermissionsButton = (props: { permissions: Permissions }) => {
         <>
             {"This document "}
             <Show when={permissions.user}>
-                is <strong>{permissionAdjective(permissions.user)}</strong> by you {"and "}
+                is <strong>{permissionAdjective(permissions.user)}</strong> by
+                you {"and "}
             </Show>
-            is <strong>{permissionAdjective(permissions.anyone)}</strong> by the public
+            is <strong>{permissionAdjective(permissions.anyone)}</strong> by the
+            public
         </>
     );
     return (
@@ -301,7 +417,10 @@ function OwnerPermissionsButton(props: { refId?: string }) {
             title="Permissions"
             trigger={OwnerPermissionsTrigger}
         >
-            <PermissionsForm refId={props.refId} onComplete={() => setOpen(false)} />
+            <PermissionsForm
+                refId={props.refId}
+                onComplete={() => setOpen(false)}
+            />
         </Dialog>
     );
 }

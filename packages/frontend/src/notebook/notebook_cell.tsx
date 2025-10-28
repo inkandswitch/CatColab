@@ -6,15 +6,8 @@ import {
 } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import type { DocHandle, Prop } from "@automerge/automerge-repo";
 import Popover from "@corvu/popover";
-import { createAutofocus } from "@solid-primitives/autofocus";
 import type { EditorView } from "prosemirror-view";
-import {
-    type JSX,
-    Show,
-    createEffect,
-    createSignal,
-    onCleanup,
-} from "solid-js";
+import { type JSX, Show, createEffect, createSignal, onCleanup } from "solid-js";
 
 import type { Uuid } from "catlog-wasm";
 import {
@@ -24,7 +17,6 @@ import {
     InlineInput,
     RichTextEditor,
 } from "../components";
-import { focusInputWhen } from "../util/focus";
 
 import ArrowDown from "lucide-solid/icons/arrow-down";
 import ArrowUp from "lucide-solid/icons/arrow-up";
@@ -32,49 +24,56 @@ import Copy from "lucide-solid/icons/copy";
 import GripVertical from "lucide-solid/icons/grip-vertical";
 import Plus from "lucide-solid/icons/plus";
 import Trash2 from "lucide-solid/icons/trash-2";
-import MessageCircle from "lucide-solid/icons/message-circle";
 
 import "./notebook_cell.css";
-import { DiffAnnotationWithUIState } from "@patchwork/sdk/annotations";
 
-/** Actions invokable *within* a cell but affecting the larger notebook state.
+/** Props available to all notebook cell editors. */
+export type CellEditorProps = {
+    /** Is the cell requested to be active?
 
-Through these functions, a cell can request to perform an action on the notebook
-or inform the notebook that an action has occcured within the cell.
+    When this prop changes to `true`, the cell is authorizeed to grab the focus.
+     */
+    isActive: boolean;
+
+    /** Actions invokable within the cell. */
+    actions: CellActions;
+};
+
+/** Actions invokable *within* a cell but affecting the overall notebook state.
+
+Using these functions, a cell can request to perform an action on the notebook
+such as deleting or moving itself.
 */
 export type CellActions = {
-    // Activate the cell above this one.
+    /** Activate the cell above this one. */
     activateAbove: () => void;
 
-    // Activate the cell below this one.
+    /** Activate the cell below this one. */
     activateBelow: () => void;
 
-    // Create a new stem cell above this one.
+    /** Create a new stem cell above this one. */
     createAbove: () => void;
 
-    // Create a new stem cell below this one.
+    /** Create a new stem cell below this one. */
     createBelow: () => void;
 
-    // Delete this cell in the backward/upward direction.
+    /** Delete this cell in the backward/upward direction. */
     deleteBackward: () => void;
 
-    // Delete this cell in the forward/downward direction.
+    /** Delete this cell in the forward/downward direction. */
     deleteForward: () => void;
 
-    // Duplicate this cell, adding the new cell below this one.
-    duplicate: () => void;
+    /** Duplicate this cell, adding the new cell below this one. */
+    duplicate?: () => void;
 
-    // Move this cell up, if possible.
+    /** Move this cell up, if possible. */
     moveUp: () => void;
 
-    // Move this cell down, if possible.
+    /** Move this cell down, if possible. */
     moveDown: () => void;
 
-    // The cell has received focus.
+    /** The cell has received focus. */
     hasFocused: () => void;
-
-    // Add a comment to the cell.
-    addComment: () => void;
 };
 
 const cellDragDataKey = Symbol("notebook-cell");
@@ -89,17 +88,18 @@ export type CellDragData = {
 };
 
 /** Create drag-and-drop data for a notebook cell. */
-const createCellDragData = (cellId: Uuid) => ({
+const createCellDragData = (cellId: Uuid, index: number) => ({
     [cellDragDataKey]: true,
     cellId,
+    index,
 });
 
 /** Check whether the drag data is of notebook cell type. */
-export function isCellDragData(
-    data: Record<string | symbol, unknown>
-): data is CellDragData {
+export function isCellDragData(data: Record<string | symbol, unknown>): data is CellDragData {
     return Boolean(data[cellDragDataKey]);
 }
+
+type ClosestEdge = "top" | "bottom" | null;
 
 /** An individual cell in a notebook.
 
@@ -108,10 +108,12 @@ the cell is rendered by its children.
  */
 export function NotebookCell(props: {
     cellId: Uuid;
+    index: number;
     actions: CellActions;
     children: JSX.Element;
     tag?: string;
-    diffAnnotation?: DiffAnnotationWithUIState<unknown, unknown, unknown>;
+    currentDropTarget: string | null;
+    setCurrentDropTarget: (cellId: string | null) => void;
 }) {
     let rootRef!: HTMLDivElement;
     let handleRef!: HTMLButtonElement;
@@ -119,8 +121,7 @@ export function NotebookCell(props: {
     const [isGutterVisible, setGutterVisible] = createSignal(false);
     const showGutter = () => setGutterVisible(true);
     const hideGutter = () => setGutterVisible(false);
-    const visibility = (isVisible: boolean) =>
-        isVisible ? "visible" : "hidden";
+    const visibility = (isVisible: boolean) => (isVisible ? "visible" : "hidden");
 
     const [isMenuOpen, setMenuOpen] = createSignal(false);
     const openMenu = () => setMenuOpen(true);
@@ -132,11 +133,15 @@ export function NotebookCell(props: {
             icon: <Trash2 size={16} />,
             onComplete: props.actions.deleteForward,
         },
-        {
-            name: "Duplicate",
-            icon: <Copy size={16} />,
-            onComplete: props.actions.duplicate,
-        },
+        ...(props.actions.duplicate
+            ? [
+                  {
+                      name: "Duplicate",
+                      icon: <Copy size={16} />,
+                      onComplete: props.actions.duplicate,
+                  },
+              ]
+            : []),
         {
             name: "Move Up",
             icon: <ArrowUp size={16} />,
@@ -147,50 +152,66 @@ export function NotebookCell(props: {
             icon: <ArrowDown size={16} />,
             onComplete: props.actions.moveDown,
         },
-        {
-            name: "Add Comment",
-            icon: <MessageCircle size={16} />,
-            onComplete: props.actions.addComment,
-        },
     ];
+
+    const [closestEdge, setClosestEdge] = createSignal<ClosestEdge>(null);
+    const [dropTarget, setDropTarget] = createSignal(false);
+
+    const isActiveDropTarget = () => props.currentDropTarget === props.cellId;
+    createEffect(() => {
+        if (!isActiveDropTarget()) {
+            setClosestEdge(null);
+            setDropTarget(false);
+        }
+    });
 
     createEffect(() => {
         const cleanup = combine(
             draggable({
                 element: handleRef,
-                getInitialData: () => createCellDragData(props.cellId),
+                getInitialData: () => createCellDragData(props.cellId, props.index),
             }),
             dropTargetForElements({
                 element: rootRef,
                 canDrop({ source }) {
                     // TODO: Reject if cell belongs to a different notebook.
+                    if (source.data.cellId === props.cellId) {
+                        return false;
+                    }
                     return isCellDragData(source.data);
                 },
                 getData({ input }) {
-                    const data = createCellDragData(props.cellId);
+                    const data = createCellDragData(props.cellId, props.index);
                     return attachClosestEdge(data, {
                         element: rootRef,
                         input,
                         allowedEdges: ["top", "bottom"],
                     });
                 },
-            })
+                onDragEnter(args) {
+                    const sourceIndex = args.source.data.index as number;
+                    const targetIndex = args.self.data.index as number;
+                    if (sourceIndex === targetIndex) {
+                        setClosestEdge(null);
+                        setDropTarget(false);
+                    } else {
+                        props.setCurrentDropTarget(props.cellId);
+                        const edge = sourceIndex < targetIndex ? "bottom" : "top";
+                        setClosestEdge(edge);
+                        setDropTarget(true);
+                    }
+                },
+                onDrop() {
+                    setDropTarget(false);
+                    setClosestEdge(null);
+                },
+            }),
         );
         onCleanup(cleanup);
     });
 
     return (
-        <div
-            class="cell"
-            classList={{
-                "cell-added": props.diffAnnotation?.type === "added",
-                "cell-changed": props.diffAnnotation?.type === "changed",
-                "cell-highlighted": props.diffAnnotation?.isSelected,
-            }}
-            onMouseEnter={showGutter}
-            onMouseLeave={hideGutter}
-            ref={rootRef}
-        >
+        <div class="cell" onMouseEnter={showGutter} onMouseLeave={hideGutter} ref={rootRef}>
             <div class="cell-gutter">
                 <IconButton
                     onClick={props.actions.createBelow}
@@ -210,11 +231,7 @@ export function NotebookCell(props: {
                     <Popover.Anchor as="span">
                         <IconButton
                             onClick={openMenu}
-                            style={{
-                                visibility: visibility(
-                                    isGutterVisible() || isMenuOpen()
-                                ),
-                            }}
+                            style={{ visibility: visibility(isGutterVisible() || isMenuOpen()) }}
                             tooltip="Drag to move cell or click to open menu"
                             ref={handleRef}
                         >
@@ -223,15 +240,20 @@ export function NotebookCell(props: {
                     </Popover.Anchor>
                     <Popover.Portal>
                         <Popover.Content class="popup">
-                            <Completions
-                                completions={completions()}
-                                onComplete={closeMenu}
-                            />
+                            <Completions completions={completions()} onComplete={closeMenu} />
                         </Popover.Content>
                     </Popover.Portal>
                 </Popover>
             </div>
-            <div class="cell-content">{props.children}</div>
+            <div class="cell-content">
+                <Show when={dropTarget() && closestEdge() === "top"}>
+                    <div class="drop-indicator-with-dots" />
+                </Show>
+                {props.children}
+                <Show when={dropTarget() && closestEdge() === "bottom"}>
+                    <div class="drop-indicator-with-dots" />
+                </Show>
+            </div>
             <Show when={props.tag}>
                 <div class="cell-tag">{props.tag}</div>
             </Show>
@@ -241,13 +263,13 @@ export function NotebookCell(props: {
 
 /** Editor for rich text cells, a simple wrapper around `RichTextEditor`.
  */
-export function RichTextCellEditor(props: {
-    cellId: Uuid;
-    handle: DocHandle<unknown>;
-    path: Prop[];
-    isActive: boolean;
-    actions: CellActions;
-}) {
+export function RichTextCellEditor(
+    props: CellEditorProps & {
+        cellId: Uuid;
+        handle: DocHandle<unknown>;
+        path: Prop[];
+    },
+) {
     const [editorView, setEditorView] = createSignal<EditorView>();
 
     createEffect(() => {
@@ -275,39 +297,33 @@ export function RichTextCellEditor(props: {
 
 /** Editor for stem cells; cells that have not been differentiated yet.
  */
-export function StemCellEditor(props: {
-    completions: Completion[];
-    isActive: boolean;
-    actions: CellActions;
-}) {
+export function StemCellEditor(
+    props: CellEditorProps & {
+        completions: Completion[];
+    },
+) {
     const [text, setText] = createSignal("");
-
-    const [ref, setRef] = createSignal<HTMLInputElement>();
-    createAutofocus(ref);
-    focusInputWhen(ref, () => props.isActive);
 
     return (
         <InlineInput
-            ref={setRef}
             text={text()}
             setText={setText}
+            placeholder="Select cell type"
             completions={props.completions}
             showCompletionsOnFocus={true}
+            isActive={props.isActive}
             deleteBackward={props.actions.deleteBackward}
             deleteForward={props.actions.deleteForward}
             exitUp={props.actions.activateAbove}
             exitDown={props.actions.activateBelow}
-            onFocus={props.actions.hasFocused}
-            placeholder="Select cell type"
+            hasFocused={props.actions.hasFocused}
         />
     );
 }
 
 /** Interface for editors of cells with formal content.
  */
-export type FormalCellEditorProps<T> = {
+export type FormalCellEditorProps<T> = CellEditorProps & {
     content: T;
     changeContent: (f: (content: T) => void) => void;
-    isActive: boolean;
-    actions: CellActions;
 };

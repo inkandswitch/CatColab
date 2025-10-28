@@ -6,25 +6,18 @@ import invariant from "tiny-invariant";
 import type { DiagramJudgment } from "catlog-wasm";
 import { useApi } from "../api";
 import { InlineInput } from "../components";
-import { LiveModelContext } from "../model";
+import { LiveModelContext, createModelLibraryWithApi } from "../model";
 import {
     type CellConstructor,
     type FormalCellEditorProps,
     NotebookEditor,
-    cellShortcutModifier,
     newFormalCell,
 } from "../notebook";
-import {
-    DocumentBreadcrumbs,
-    DocumentLoadingScreen,
-    DocumentMenu,
-    TheoryHelpButton,
-    Toolbar,
-} from "../page";
-import { TheoryLibraryContext } from "../stdlib";
-import type { InstanceTypeMeta } from "../theory";
+import { DocumentBreadcrumbs, DocumentLoadingScreen, Toolbar } from "../page";
+import { type InstanceTypeMeta, TheoryLibraryContext } from "../theory";
 import { PermissionsButton } from "../user";
 import { LiveDiagramContext } from "./context";
+import { DiagramMenu } from "./diagram_menu";
 import { type LiveDiagramDocument, getLiveDiagram } from "./document";
 import { DiagramMorphismCellEditor } from "./morphism_cell_editor";
 import { DiagramObjectCellEditor } from "./object_cell_editor";
@@ -39,15 +32,16 @@ import {
 import "./diagram_editor.css";
 
 export default function DiagramPage() {
+    const params = useParams();
+
     const api = useApi();
     const theories = useContext(TheoryLibraryContext);
     invariant(theories, "Must provide theory library as context to diagram page");
-
-    const params = useParams();
+    const models = createModelLibraryWithApi(api, theories);
 
     const [liveDiagram] = createResource(
         () => params.ref,
-        (refId) => getLiveDiagram(refId, api, theories),
+        (refId) => getLiveDiagram(refId, api, models),
     );
 
     return (
@@ -63,14 +57,10 @@ export function DiagramDocumentEditor(props: {
     return (
         <div class="growable-container">
             <Toolbar>
-                <DocumentMenu liveDocument={props.liveDiagram} />
-                <DocumentBreadcrumbs document={props.liveDiagram} />
+                <DiagramMenu liveDiagram={props.liveDiagram} />
+                <DocumentBreadcrumbs liveDoc={props.liveDiagram.liveDoc} />
                 <span class="filler" />
-                <TheoryHelpButton theory={props.liveDiagram.liveModel.theory()} />
-                <PermissionsButton
-                    permissions={props.liveDiagram.liveDoc.permissions}
-                    refId={props.liveDiagram.refId}
-                />
+                <PermissionsButton liveDoc={props.liveDiagram.liveDoc} />
             </Toolbar>
             <DiagramPane liveDiagram={props.liveDiagram} />
         </div>
@@ -99,9 +89,9 @@ export function DiagramPane(props: {
                     />
                 </div>
                 <div class="instance-of">
-                    <div class="name">{liveModel().theory().instanceOfName}</div>
+                    <div class="name">{liveModel().theory()?.instanceOfName}</div>
                     <div class="model">
-                        <A href={`/model/${liveModel().refId}`}>
+                        <A href={`/model/${liveModel().liveDoc.docRef?.refId}`}>
                             {liveModel().liveDoc.doc.name || "Untitled"}
                         </A>
                     </div>
@@ -121,7 +111,7 @@ export function DiagramNotebookEditor(props: {
     const liveModel = () => props.liveDiagram.liveModel;
 
     const cellConstructors = () =>
-        (liveModel().theory().instanceTypes ?? []).map(diagramCellConstructor);
+        (liveModel().theory()?.instanceTypes ?? []).map(diagramCellConstructor);
 
     return (
         <MultiProvider
@@ -149,27 +139,36 @@ export function DiagramNotebookEditor(props: {
 /** Editor for a notebook cell in a diagram notebook.
  */
 function DiagramCellEditor(props: FormalCellEditorProps<DiagramJudgment>) {
+    const liveDiagram = useContext(LiveDiagramContext);
+    invariant(liveDiagram, "Live diagram should be provided as context");
+
     return (
         <Switch>
-            <Match when={props.content.tag === "object"}>
-                <DiagramObjectCellEditor
-                    decl={props.content as DiagramObjectDecl}
-                    modifyDecl={(f) =>
-                        props.changeContent((content) => f(content as DiagramObjectDecl))
-                    }
-                    isActive={props.isActive}
-                    actions={props.actions}
-                />
+            <Match when={props.content.tag === "object" && liveDiagram().liveModel.theory()}>
+                {(theory) => (
+                    <DiagramObjectCellEditor
+                        decl={props.content as DiagramObjectDecl}
+                        modifyDecl={(f) =>
+                            props.changeContent((content) => f(content as DiagramObjectDecl))
+                        }
+                        isActive={props.isActive}
+                        actions={props.actions}
+                        theory={theory()}
+                    />
+                )}
             </Match>
-            <Match when={props.content.tag === "morphism"}>
-                <DiagramMorphismCellEditor
-                    decl={props.content as DiagramMorphismDecl}
-                    modifyDecl={(f) =>
-                        props.changeContent((content) => f(content as DiagramMorphismDecl))
-                    }
-                    isActive={props.isActive}
-                    actions={props.actions}
-                />
+            <Match when={props.content.tag === "morphism" && liveDiagram().liveModel.theory()}>
+                {(theory) => (
+                    <DiagramMorphismCellEditor
+                        decl={props.content as DiagramMorphismDecl}
+                        modifyDecl={(f) =>
+                            props.changeContent((content) => f(content as DiagramMorphismDecl))
+                        }
+                        isActive={props.isActive}
+                        actions={props.actions}
+                        theory={theory()}
+                    />
+                )}
             </Match>
         </Switch>
     );
@@ -180,7 +179,7 @@ function diagramCellConstructor(meta: InstanceTypeMeta): CellConstructor<Diagram
     return {
         name,
         description,
-        shortcut: shortcut && [cellShortcutModifier, ...shortcut],
+        shortcut,
         construct() {
             return meta.tag === "ObType"
                 ? newFormalCell(newDiagramObjectDecl(meta.obType))
@@ -195,9 +194,9 @@ function judgmentLabel(judgment: DiagramJudgment): string | undefined {
     const theory = liveModel().theory();
 
     if (judgment.tag === "object") {
-        return theory.instanceObTypeMeta(judgment.obType)?.name;
+        return theory?.instanceObTypeMeta(judgment.obType)?.name;
     }
     if (judgment.tag === "morphism") {
-        return theory.instanceMorTypeMeta(judgment.morType)?.name;
+        return theory?.instanceMorTypeMeta(judgment.morType)?.name;
     }
 }

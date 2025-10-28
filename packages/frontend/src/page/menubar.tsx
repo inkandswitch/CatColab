@@ -3,12 +3,17 @@ import { useNavigate } from "@solidjs/router";
 import { type JSX, Show, useContext } from "solid-js";
 import invariant from "tiny-invariant";
 
+import type { Document } from "catlog-wasm";
 import { useApi } from "../api";
 import { IconButton } from "../components";
 import { createModel } from "../model/document";
-import { TheoryLibraryContext } from "../stdlib";
+import { TheoryLibraryContext } from "../theory";
+import { copyToClipboard, downloadJson } from "../util/json_export";
 import { PageActionsContext } from "./context";
 
+import CopyToClipboard from "lucide-solid/icons/clipboard-copy";
+import Copy from "lucide-solid/icons/copy";
+import Export from "lucide-solid/icons/download";
 import FilePlus from "lucide-solid/icons/file-plus";
 import Files from "lucide-solid/icons/files";
 import Info from "lucide-solid/icons/info";
@@ -35,7 +40,9 @@ export function HamburgerMenu(props: {
                 <MenuIcon />
             </DropdownMenu.Trigger>
             <DropdownMenu.Portal>
-                <DropdownMenu.Content class="menu popup">{props.children}</DropdownMenu.Content>
+                <DropdownMenu.Content class="menu popup">
+                    {props.children}
+                </DropdownMenu.Content>
             </DropdownMenu.Portal>
         </DropdownMenu>
     );
@@ -82,7 +89,10 @@ export function NewModelItem() {
     invariant(theories, "Theory library must be provided as context");
 
     const onNewModel = async () => {
-        const newRef = await createModel(api, theories.getDefault().id);
+        const newRef = await createModel(
+            api,
+            theories.defaultTheoryMetadata().id
+        );
         navigate(`/model/${newRef}`);
     };
 
@@ -90,6 +100,24 @@ export function NewModelItem() {
         <MenuItem onSelect={onNewModel}>
             <FilePlus />
             <MenuItemLabel>{"New model"}</MenuItemLabel>
+        </MenuItem>
+    );
+}
+
+/** Menu item to duplicate a document. */
+export function DuplicateMenuItem(props: { doc: Document }) {
+    const api = useApi();
+    const navigate = useNavigate();
+
+    const onDuplicate = async () => {
+        const newRef = await api.duplicateDoc(props.doc);
+        navigate(`/${props.doc.type}/${newRef}`);
+    };
+
+    return (
+        <MenuItem onSelect={onDuplicate}>
+            <Copy />
+            <MenuItemLabel>{"Duplicate model"}</MenuItemLabel>
         </MenuItem>
     );
 }
@@ -107,6 +135,31 @@ export function ImportMenuItem() {
     );
 }
 
+/** Menu item to export document as JSON. */
+export function ExportJSONMenuItem(props: { doc: Document }) {
+    const onExportJSON = () =>
+        downloadJson(JSON.stringify(props.doc), `${props.doc.name}.json`);
+
+    return (
+        <MenuItem onSelect={onExportJSON}>
+            <Export />
+            <MenuItemLabel>{`Export ${props.doc.type}`}</MenuItemLabel>
+        </MenuItem>
+    );
+}
+
+/** Menu item to copy document to clipboard in JSON format. */
+export function CopyJSONMenuItem(props: { doc: Document }) {
+    const onCopyJSON = () => copyToClipboard(JSON.stringify(props.doc));
+
+    return (
+        <MenuItem onSelect={onCopyJSON}>
+            <CopyToClipboard />
+            <MenuItemLabel>{`Copy ${props.doc.type} to clipboard`}</MenuItemLabel>
+        </MenuItem>
+    );
+}
+
 /** Menu item navigating to the top-level application help. */
 function HelpMenuItem() {
     const navigate = useNavigate();
@@ -119,6 +172,7 @@ function HelpMenuItem() {
     );
 }
 
+// @ts-ignore - unused for now
 function LogInMenuItem() {
     const actions = useContext(PageActionsContext);
     invariant(actions, "Page actions should be provided");
@@ -131,6 +185,7 @@ function LogInMenuItem() {
     );
 }
 
+// @ts-ignore - unused for now
 function LogOutMenuItem() {
     return (
         <MenuItem onSelect={() => "nah"}>
@@ -140,6 +195,7 @@ function LogOutMenuItem() {
     );
 }
 
+// @ts-ignore - unused for now
 function SettingsMenuItem() {
     const navigate = useNavigate();
 
@@ -151,6 +207,7 @@ function SettingsMenuItem() {
     );
 }
 
+// @ts-ignore - unused for now
 function DocumentsMenuItem() {
     const navigate = useNavigate();
 
