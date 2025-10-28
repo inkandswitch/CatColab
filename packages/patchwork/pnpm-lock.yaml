@@ -18,8 +18,8 @@ importers:
         specifier: ^2.2.0
         version: 2.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patchwork/sdk':
-        specifier: link:../../../patchwork/sdk
-        version: link:../../../patchwork/sdk
+        specifier: link:../../../../patchwork/sdk
+        version: link:../../../../patchwork/sdk
       catlog-wasm:
         specifier: link:../catlog-wasm/dist/pkg-browser
         version: link:../catlog-wasm/dist/pkg-browser

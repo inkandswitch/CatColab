@@ -1,5 +1,6 @@
 import type {
     AnyDocumentId,
+    AutomergeUrl,
     ChangeFn,
     DocHandle,
     DocHandleChangePayload,
@@ -12,6 +13,14 @@ import invariant from "tiny-invariant";
 
 import type { Permissions } from "catcolab-api";
 import { type Document, migrateDocument } from "catlog-wasm";
+
+// TODO: replace with HasVersionControlMetadata
+type DocWithPatchworkType<Doc extends Document> = Doc & {
+    "@patchwork": {
+        type: number;
+        suggestedImportUrl: AutomergeUrl;
+    };
+};
 
 /** Live document, typically retrieved from the backend.
 
@@ -58,16 +67,23 @@ any necessary migrations are performed before the data is accessed.
 export async function findAndMigrate<Doc extends Document>(
     repo: Repo,
     docId: AnyDocumentId,
-    docType?: Doc["type"],
+    docType?: Doc["type"]
 ): Promise<DocHandle<Doc>> {
     const docHandle = await repo.find<Doc>(docId);
 
     // Perform any migrations on the document.
     // XXX: copied from automerge-doc-server/src/server.ts:
-    const docBefore = docHandle.doc();
+    const docBefore = docHandle.doc() as DocWithPatchworkType<Doc>;
     const docAfter = migrateDocument(docBefore);
+
     if ((docBefore as Doc).version !== docAfter.version) {
-        const patches = jsonpatch.compare(docBefore as Doc, docAfter);
+        const docCleaned = structuredClone(docBefore);
+        delete (docCleaned as any)["@patchwork"];
+
+        const patches = jsonpatch.compare(
+            docCleaned as unknown as Doc,
+            docAfter
+        );
         docHandle.change((doc: unknown) => {
             jsonpatch.applyPatch(doc, patches);
         });
@@ -77,7 +93,7 @@ export async function findAndMigrate<Doc extends Document>(
         const actualType = docHandle.doc().type;
         invariant(
             actualType === docType,
-            () => `Expected document of type ${docType}, got ${actualType}`,
+            () => `Expected document of type ${docType}, got ${actualType}`
         );
     }
     return docHandle;
@@ -92,7 +108,7 @@ function directly.
  */
 export function makeLiveDoc<Doc extends Document>(
     docHandle: DocHandle<Doc>,
-    docRef?: DocRef,
+    docRef?: DocRef
 ): LiveDoc<Doc> {
     const doc = makeDocHandleReactive(docHandle);
     const changeDoc = (f: ChangeFn<Doc>) => docHandle.change(f);
@@ -100,7 +116,9 @@ export function makeLiveDoc<Doc extends Document>(
 }
 
 /** Create a Solid Store that tracks an Automerge document. */
-export function makeDocHandleReactive<T extends object>(handle: DocHandle<T>): T {
+export function makeDocHandleReactive<T extends object>(
+    handle: DocHandle<T>
+): T {
     const init = handle.doc();
 
     const [store, setStore] = createStore<T>(init as T);
@@ -117,7 +135,9 @@ export function makeDocHandleReactive<T extends object>(handle: DocHandle<T>): T
 }
 
 /** Create a boolean signal for whether an Automerge document handle is ready. */
-export function useDocHandleReady(getHandle: () => DocHandle<unknown>): Accessor<boolean> {
+export function useDocHandleReady(
+    getHandle: () => DocHandle<unknown>
+): Accessor<boolean> {
     const [isReady, setIsReady] = createSignal<boolean>(false);
 
     createEffect(() => {

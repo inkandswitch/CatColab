@@ -22,6 +22,16 @@ export const plugins: Plugin<any>[] = [
         },
         unlisted: true,
     },
+    {
+        type: "patchwork:action",
+        id: "catcolab-add-cell",
+        name: "Add Cell",
+        icon: "Plus",
+        supportedDataTypes: ["catcolab-model"],
+        async load() {
+            return await import("./actions");
+        },
+    },
     // {
     //     type: "patchwork:tool",
     //     id: "catcolab-model-view",

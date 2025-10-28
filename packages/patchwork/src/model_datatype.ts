@@ -4,7 +4,11 @@ import type {
     TextPatch,
     DecodedChangeWithMetadata,
 } from "@patchwork/sdk/versionControl";
-import { type DataTypeImplementation, type DocLink, initFrom } from "@patchwork/sdk";
+import {
+    type DataTypeImplementation,
+    type DocLink,
+    initFrom,
+} from "@patchwork/sdk";
 import type { Cell, Uuid } from "catlog-wasm";
 import type { AutomergeUrl, Repo } from "@automerge/automerge-repo";
 import { type AnalysisDoc, init as initAnalysis } from "./analysis_datatype";
@@ -16,7 +20,8 @@ export type ModelDoc = HasVersionControlMetadata<Uuid, Cell<unknown>> & {
     theory: string;
     type: string;
     notebook: {
-        cells: Cell<unknown>[];
+        cellOrder: string[];
+        cellContents: Record<string, Cell<unknown>>;
     };
     analysisDocUrl: AutomergeUrl;
 };
@@ -37,7 +42,9 @@ export const includeChangeInHistory = (doc: ModelDoc) => {
     ].map((path) => A.getObjectId(doc, path));
 
     return (decodedChange: DecodedChangeWithMetadata) => {
-        return decodedChange.ops.every((op) => !metadataObjIds.includes(op.obj));
+        return decodedChange.ops.every(
+            (op) => !metadataObjIds.includes(op.obj)
+        );
     };
 };
 
@@ -65,7 +72,8 @@ export const init = (doc: ModelDoc, repo: Repo) => {
         theory: "simple-olog",
         type: "model",
         notebook: {
-            cells: [],
+            cellOrder: [],
+            cellContents: {},
         },
         analysisDocUrl: analysisDocHandle.url,
     });
