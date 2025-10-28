@@ -5,7 +5,7 @@ import { getLiveAnalysisFromRepo } from "../../frontend/src/analysis";
 import { createModelLibraryWithRepo } from "../../frontend/src/model";
 import { stdTheories } from "../../frontend/src/stdlib";
 import { TheoryLibraryContext } from "../../frontend/src/theory";
-import { SolidToolProps } from "./tools";
+import type { SolidToolProps } from "./tools";
 import { AnnotationsContext } from "./annotations_solid";
 
 export function AnalysisPaneComponent(props: SolidToolProps) {

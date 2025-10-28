@@ -1,14 +1,19 @@
 import * as A from "@automerge/automerge";
-import {
+import type {
     HasVersionControlMetadata,
     Annotation,
     TextPatch,
     DecodedChangeWithMetadata,
 } from "@patchwork/sdk/versionControl";
-import { type DataTypeImplementation, DocLink, initFrom } from "@patchwork/sdk";
-import { Cell, Uuid } from "catlog-wasm";
-import { AutomergeUrl, Repo } from "@automerge/automerge-repo";
-import { AnalysisDoc, init as initAnalysis } from "./analysis_datatype";
+import {
+    type DataTypeImplementation,
+    type DocLink,
+    initFrom,
+} from "@patchwork/sdk";
+import type { Cell, Uuid } from "catlog-wasm";
+import type { AutomergeUrl, Repo } from "@automerge/automerge-repo";
+import type { AnalysisDoc } from "./analysis_datatype";
+import { init as initAnalysis } from "./analysis_datatype";
 
 // SCHEMA
 
@@ -17,9 +22,11 @@ export type ModelDoc = HasVersionControlMetadata<Uuid, Cell<unknown>> & {
     theory: string;
     type: string;
     notebook: {
-        cells: Cell<unknown>[];
+        cellContents: Record<Uuid, Cell<unknown>>;
+        cellOrder: Uuid[];
     };
     analysisDocUrl: AutomergeUrl;
+    version: string;
 };
 
 export const patchesToAnnotations = (
@@ -111,13 +118,11 @@ export const patchesToAnnotations = (
 };
 
 const valueOfAnchor = (doc: ModelDoc, anchor: Uuid): Cell<unknown> => {
-    return doc.notebook.cells.find(
-        (cell) => cell.id === anchor
-    ) as Cell<unknown>;
+    return doc.notebook.cellContents[anchor];
 };
 
 const sortAnchorsBy = (doc: ModelDoc, anchor: Uuid): number => {
-    return doc.notebook.cells.findIndex((cell) => cell.id === anchor);
+    return doc.notebook.cellOrder.findIndex((cellId) => cellId === anchor);
 };
 
 const includePatchInChangeGroup = (patch: A.Patch | TextPatch) => {
@@ -166,9 +171,11 @@ export const init = (doc: ModelDoc, repo: Repo) => {
         theory: "simple-olog",
         type: "model",
         notebook: {
-            cells: [],
+            cellContents: {},
+            cellOrder: [],
         },
         analysisDocUrl: analysisDocHandle.url,
+        version: "1",
     });
 };
 

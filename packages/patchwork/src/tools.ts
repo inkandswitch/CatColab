@@ -1,19 +1,19 @@
-import { Repo } from "@automerge/automerge-repo";
+import type { Repo } from "@automerge/automerge-repo";
 import {
     useDocHandle,
     useDocument,
     useRepo,
 } from "@automerge/automerge-repo-react-hooks";
-import { EditorProps } from "@patchwork/sdk";
+import type { EditorProps } from "@patchwork/sdk";
 import { useAllAnnotations } from "@patchwork/sdk/annotations";
-import { Cell, Uuid } from "catlog-wasm";
+import type { Cell, Uuid } from "catlog-wasm";
 import React, { useEffect, useMemo, useRef } from "react";
-import { Accessor, JSX, createSignal } from "solid-js";
+import { type Accessor, type JSX, createSignal } from "solid-js";
 
 import { createComponent, render } from "solid-js/web";
-import { AnalysisDoc } from "./analysis_datatype";
+import type { AnalysisDoc } from "./analysis_datatype";
 import { AnalysisPaneComponent } from "./analysis_pane";
-import { ModelDoc } from "./model_datatype";
+import type { ModelDoc } from "./model_datatype";
 import { ModelPaneComponent } from "./model_pane";
 import "./tools.css";
 
@@ -41,12 +41,16 @@ export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
 
     const analysisDocUrl = modelDoc.analysisDocUrl;
 
-    const resolvedAnalysisDocUrl = useMemo(
-        () =>
+    const resolvedAnalysisDocUrl = useMemo(() => {
+        if (!analysisDocUrl) {
+            return undefined;
+        }
+
+        return (
             docLinksWithAnnotations.find((a) => a.main?.url === analysisDocUrl)
-                ?.url ?? analysisDocUrl,
-        [modelDoc.analysisDocUrl, docLinksWithAnnotations]
-    );
+                ?.url ?? analysisDocUrl
+        );
+    }, [analysisDocUrl, docLinksWithAnnotations]);
 
     const resolvedModelDocUrl = useMemo(
         () =>
@@ -55,12 +59,7 @@ export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
         [docUrl, docLinksWithAnnotations]
     );
 
-    const analysisDocHandle = useDocHandle<AnalysisDoc>(
-        resolvedAnalysisDocUrl,
-        {
-            suspense: true,
-        }
-    );
+    const analysisDocHandle = useDocHandle<AnalysisDoc>(resolvedAnalysisDocUrl);
 
     // hack: update the analysis document to point to the current model document
     //
@@ -86,7 +85,7 @@ export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
                 _id: resolvedModelDocUrl,
             };
         });
-    }, [resolvedAnalysisDocUrl, modelDoc, analysisDocHandle]);
+    }, [modelDoc, analysisDocHandle, resolvedModelDocUrl]);
 
     if (!resolvedAnalysisDocUrl) {
         return null;
@@ -136,7 +135,7 @@ const Tool: React.FC<
         if (allAnnotations) {
             setAnnotationsContextValue(allAnnotations);
         }
-    }, [allAnnotations]);
+    }, [allAnnotations, setAnnotationsContextValue]);
 
     // mount the solid component once the handle and repo are available
     useEffect(() => {
@@ -171,7 +170,7 @@ const Tool: React.FC<
                 solidDisposeRef.current = null;
             }
         };
-    }, [docUrl, handle, solidComponent]);
+    }, [docUrl, handle, solidComponent, getAnnotationsContextValue]);
 
     if (!handle) {
         return null;

@@ -58,28 +58,34 @@ any necessary migrations are performed before the data is accessed.
 export async function findAndMigrate<Doc extends Document>(
     repo: Repo,
     docId: AnyDocumentId,
-    docType?: Doc["type"],
+    docType?: Doc["type"]
 ): Promise<DocHandle<Doc>> {
     const docHandle = await repo.find<Doc>(docId);
 
-    // Perform any migrations on the document.
-    // XXX: copied from automerge-doc-server/src/server.ts:
-    const docBefore = docHandle.doc();
-    const docAfter = migrateDocument(docBefore);
-    if ((docBefore as Doc).version !== docAfter.version) {
-        const patches = jsonpatch.compare(docBefore as Doc, docAfter);
-        docHandle.change((doc: unknown) => {
-            jsonpatch.applyPatch(doc, patches);
-        });
-    }
+    // HACK for demo
+    // DON'T RUN MIGRATIONS, keep this line no matter what if this line
+    // is part of a merge conflict always keep the part the behavior of this function
+    // commented out so that this function basically does nothing
+    // const docAfter = docHandle.doc();
+    //return docHandle;p
+    // // Perform any migrations on the document.
+    // // XXX: copied from automerge-doc-server/src/server.ts:
+    // const docBefore = docHandle.doc();
+    // const docAfter = migrateDocument(docBefore);
+    // if ((docBefore as Doc).version !== docAfter.version) {
+    //     const patches = jsonpatch.compare(docBefore as Doc, docAfter);
+    //     docHandle.change((doc: unknown) => {
+    //         jsonpatch.applyPatch(doc, patches);
+    //     });
+    // }
 
-    if (docType !== undefined) {
-        const actualType = docHandle.doc().type;
-        invariant(
-            actualType === docType,
-            () => `Expected document of type ${docType}, got ${actualType}`,
-        );
-    }
+    // if (docType !== undefined) {
+    //     const actualType = docHandle.doc().type;
+    //     invariant(
+    //         actualType === docType,
+    //         () => `Expected document of type ${docType}, got ${actualType}`,
+    //     );
+    // }
     return docHandle;
 }
 
@@ -92,7 +98,7 @@ function directly.
  */
 export function makeLiveDoc<Doc extends Document>(
     docHandle: DocHandle<Doc>,
-    docRef?: DocRef,
+    docRef?: DocRef
 ): LiveDoc<Doc> {
     const doc = makeDocHandleReactive(docHandle);
     const changeDoc = (f: ChangeFn<Doc>) => docHandle.change(f);
@@ -100,7 +106,9 @@ export function makeLiveDoc<Doc extends Document>(
 }
 
 /** Create a Solid Store that tracks an Automerge document. */
-export function makeDocHandleReactive<T extends object>(handle: DocHandle<T>): T {
+export function makeDocHandleReactive<T extends object>(
+    handle: DocHandle<T>
+): T {
     const init = handle.doc();
 
     const [store, setStore] = createStore<T>(init as T);
@@ -117,7 +125,9 @@ export function makeDocHandleReactive<T extends object>(handle: DocHandle<T>): T
 }
 
 /** Create a boolean signal for whether an Automerge document handle is ready. */
-export function useDocHandleReady(getHandle: () => DocHandle<unknown>): Accessor<boolean> {
+export function useDocHandleReady(
+    getHandle: () => DocHandle<unknown>
+): Accessor<boolean> {
     const [isReady, setIsReady] = createSignal<boolean>(false);
 
     createEffect(() => {

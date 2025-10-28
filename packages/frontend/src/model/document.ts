@@ -1,7 +1,12 @@
 import type { Accessor } from "solid-js";
 import invariant from "tiny-invariant";
 
-import { type DblModel, type Document, type ModelJudgment, currentVersion } from "catlog-wasm";
+import {
+    type DblModel,
+    type Document,
+    type ModelJudgment,
+    currentVersion,
+} from "catlog-wasm";
 import type { Api, LiveDoc } from "../api";
 import { NotebookUtils, newNotebook } from "../notebook/types";
 import type { Theory, TheoryLibrary } from "../theory";
@@ -46,7 +51,7 @@ Returns the ref ID of the created document.
  */
 export async function createModel(
     api: Api,
-    initOrTheoryId: ModelDocument | string,
+    initOrTheoryId: ModelDocument | string
 ): Promise<string> {
     let init: ModelDocument;
     if (typeof initOrTheoryId === "string") {
@@ -61,7 +66,7 @@ export async function createModel(
 export async function migrateModelDocument(
     liveModel: LiveModelDocument,
     targetTheoryId: string,
-    theories: TheoryLibrary,
+    theories: TheoryLibrary
 ) {
     const { doc, changeDoc } = liveModel.liveDoc;
     const targetTheory = await theories.get(targetTheoryId);
@@ -70,7 +75,10 @@ export async function migrateModelDocument(
     invariant(theory && model); // FIXME: Should fail gracefully.
 
     // Trivial migration.
-    if (!NotebookUtils.hasFormalCells(doc.notebook) || theory.inclusions.includes(targetTheoryId)) {
+    if (
+        !NotebookUtils.hasFormalCells(doc.notebook) ||
+        theory.inclusions.includes(targetTheoryId)
+    ) {
         changeDoc((doc) => {
             doc.theory = targetTheoryId;
         });
@@ -78,9 +86,13 @@ export async function migrateModelDocument(
     }
 
     // Pushforward migration.
-    const migration = theory.pushforwards.find((m) => m.target === targetTheoryId);
+    const migration = theory.pushforwards.find(
+        (m) => m.target === targetTheoryId
+    );
     if (!migration) {
-        throw new Error(`No migration defined from ${theory.id} to ${targetTheoryId}`);
+        throw new Error(
+            `No migration defined from ${theory.id} to ${targetTheoryId}`
+        );
     }
     // TODO: We need a general method to propagate changes from catlog models to
     // notebooks. This stop-gap solution only works because pushforward

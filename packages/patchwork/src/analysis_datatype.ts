@@ -1,7 +1,7 @@
-import { HasVersionControlMetadata } from "@patchwork/sdk/versionControl";
+import type { HasVersionControlMetadata } from "@patchwork/sdk/versionControl";
 import { type DataTypeImplementation, initFrom } from "@patchwork/sdk";
-import { AutomergeUrl } from "@automerge/automerge-repo";
-import { Cell, Uuid } from "catlog-wasm";
+import type { AutomergeUrl } from "@automerge/automerge-repo";
+import type { Cell, Uuid } from "catlog-wasm";
 
 // SCHEMA
 
@@ -10,12 +10,14 @@ export type AnalysisDoc = HasVersionControlMetadata<Uuid, Cell<unknown>> & {
     theory: string;
     type: string;
     notebook: {
-        cells: any[];
+        cellContents: Record<Uuid, Cell<unknown>>;
+        cellOrder: Uuid[];
     };
     analysisOf?: {
         _id: AutomergeUrl;
     };
     analysisType: "model";
+    version: string;
 };
 
 // FUNCTIONS
@@ -39,8 +41,10 @@ export const init = (doc: AnalysisDoc) => {
         type: "analysis",
         analysisType: "model",
         notebook: {
-            cells: [],
+            cellContents: {},
+            cellOrder: [],
         },
+        version: "1",
     });
 };
 
