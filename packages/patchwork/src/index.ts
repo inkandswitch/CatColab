@@ -32,6 +32,46 @@ export const plugins: Plugin<any>[] = [
             return await import("./actions");
         },
     },
+    {
+        type: "patchwork:action",
+        id: "catcolab-change-theory",
+        name: "Change Theory",
+        icon: "ArrowRightLeft",
+        supportedDataTypes: ["catcolab-model"],
+        async load() {
+            return await import("./change_theory");
+        },
+    },
+    {
+        type: "patchwork:action",
+        id: "catcolab-rename-cell",
+        name: "Rename Cell",
+        icon: "Pencil",
+        supportedDataTypes: ["catcolab-model"],
+        async load() {
+            return await import("./rename_cell");
+        },
+    },
+    {
+        type: "patchwork:action",
+        id: "catcolab-delete-cell",
+        name: "Delete Cell",
+        icon: "Trash2",
+        supportedDataTypes: ["catcolab-model"],
+        async load() {
+            return await import("./delete_cell");
+        },
+    },
+    {
+        type: "patchwork:action",
+        id: "catcolab-reorder-cell",
+        name: "Reorder Cell",
+        icon: "ArrowUpDown",
+        supportedDataTypes: ["catcolab-model"],
+        async load() {
+            return await import("./reorder_cell");
+        },
+    },
     // {
     //     type: "patchwork:tool",
     //     id: "catcolab-model-view",

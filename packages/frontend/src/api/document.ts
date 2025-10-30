@@ -79,6 +79,7 @@ export async function findAndMigrate<Doc extends Document>(
     if ((docBefore as Doc).version !== docAfter.version) {
         const docCleaned = structuredClone(docBefore);
         delete (docCleaned as any)["@patchwork"];
+        delete (docCleaned as any)["analysisDocUrl"];
 
         const patches = jsonpatch.compare(
             docCleaned as unknown as Doc,

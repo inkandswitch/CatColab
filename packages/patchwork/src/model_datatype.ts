@@ -23,6 +23,7 @@ export type ModelDoc = HasVersionControlMetadata<Uuid, Cell<unknown>> & {
         cellOrder: string[];
         cellContents: Record<string, Cell<unknown>>;
     };
+    version: string;
     analysisDocUrl: AutomergeUrl;
 };
 
@@ -75,6 +76,7 @@ export const init = (doc: ModelDoc, repo: Repo) => {
             cellOrder: [],
             cellContents: {},
         },
+        version: "1",
         analysisDocUrl: analysisDocHandle.url,
     });
 };

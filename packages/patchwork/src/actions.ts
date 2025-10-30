@@ -64,7 +64,35 @@ const modelCellConstructor = (
                     objectTypeMatches(obj.obType, domType)
                 );
                 if (domMatch) {
-                    cell.dom = { tag: "Basic", content: domMatch.id };
+                    const basicOb = {
+                        tag: "Basic" as const,
+                        content: domMatch.id,
+                    };
+                    // Wrap in App if there's a domain apply operation
+                    if (meta.domain?.apply) {
+                        // Get the type of the operation's argument
+                        const argType = theory.theory.dom(meta.domain.apply);
+                        // The argument should be a list, so wrap in List structure
+                        const listOb = {
+                            tag: "List" as const,
+                            content: {
+                                modality:
+                                    argType.tag === "ModeApp"
+                                        ? argType.content.modality
+                                        : "SymmetricList",
+                                objects: [basicOb],
+                            },
+                        };
+                        cell.dom = {
+                            tag: "App" as const,
+                            content: {
+                                op: meta.domain.apply,
+                                ob: listOb,
+                            },
+                        };
+                    } else {
+                        cell.dom = basicOb;
+                    }
                 }
 
                 // Find first object matching codomain type
@@ -72,7 +100,35 @@ const modelCellConstructor = (
                     objectTypeMatches(obj.obType, codType)
                 );
                 if (codMatch) {
-                    cell.cod = { tag: "Basic", content: codMatch.id };
+                    const basicOb = {
+                        tag: "Basic" as const,
+                        content: codMatch.id,
+                    };
+                    // Wrap in App if there's a codomain apply operation
+                    if (meta.codomain?.apply) {
+                        // Get the type of the operation's argument
+                        const argType = theory.theory.dom(meta.codomain.apply);
+                        // The argument should be a list, so wrap in List structure
+                        const listOb = {
+                            tag: "List" as const,
+                            content: {
+                                modality:
+                                    argType.tag === "ModeApp"
+                                        ? argType.content.modality
+                                        : "SymmetricList",
+                                objects: [basicOb],
+                            },
+                        };
+                        cell.cod = {
+                            tag: "App" as const,
+                            content: {
+                                op: meta.codomain.apply,
+                                ob: listOb,
+                            },
+                        };
+                    } else {
+                        cell.cod = basicOb;
+                    }
                 }
 
                 return newFormalCell(cell);
@@ -121,12 +177,22 @@ export const argsSchema = (doc: ModelDoc) => {
         (j): j is ObjectDecl => j.tag === "object"
     );
 
+    // Get position options based on existing cells
+    const positions = ["end", "beginning"];
+    if (formalContent.length > 0) {
+        // Add "after X" options for each existing cell
+        for (const cell of formalContent) {
+            const label = cell.name || cell.id;
+            positions.push(`after:${label}`);
+        }
+    }
+
     // Build option schemas for each cell type
     const optionSchemas: z.ZodTypeAny[] = [];
 
     for (const meta of theory.modelTypes ?? []) {
         if (meta.tag === "ObType") {
-            // Object types: just cellType and name
+            // Object types: cellType, name, and position
             optionSchemas.push(
                 z.object({
                     cellType: z.literal(meta.name),
@@ -134,23 +200,16 @@ export const argsSchema = (doc: ModelDoc) => {
                         .string()
                         .optional()
                         .describe("Name/label for the cell"),
+                    position: z
+                        .enum(positions as [string, ...string[]])
+                        .default("end")
+                        .describe("Where to insert the cell"),
                 })
             );
         } else if (meta.tag === "MorType") {
             // Morphism types: cellType, name, dom, and cod
             const domType = theory.theory.src(meta.morType);
             const codType = theory.theory.tgt(meta.morType);
-
-            console.log(`[argsSchema] Building schema for ${meta.name}`);
-            console.log(`  domType:`, domType);
-            console.log(`  codType:`, codType);
-            console.log(
-                `  availableObjects:`,
-                availableObjects.map((o) => ({
-                    name: o.name,
-                    obType: o.obType,
-                }))
-            );
 
             // Find objects matching domain type
             const domObjects = availableObjects.filter((obj) =>
@@ -160,12 +219,6 @@ export const argsSchema = (doc: ModelDoc) => {
                 .map((obj) => obj.name || obj.id)
                 .filter((label, index, arr) => arr.indexOf(label) === index); // dedupe
 
-            console.log(
-                `  domObjects:`,
-                domObjects.map((o) => o.name)
-            );
-            console.log(`  domLabels:`, domLabels);
-
             // Find objects matching codomain type
             const codObjects = availableObjects.filter((obj) =>
                 objectTypeMatches(obj.obType, codType)
@@ -174,15 +227,13 @@ export const argsSchema = (doc: ModelDoc) => {
                 .map((obj) => obj.name || obj.id)
                 .filter((label, index, arr) => arr.indexOf(label) === index); // dedupe
 
-            console.log(
-                `  codObjects:`,
-                codObjects.map((o) => o.name)
-            );
-            console.log(`  codLabels:`, codLabels);
-
             const morphismSchema: Record<string, z.ZodTypeAny> = {
                 cellType: z.literal(meta.name),
                 name: z.string().optional().describe("Name/label for the cell"),
+                position: z
+                    .enum(positions as [string, ...string[]])
+                    .default("end")
+                    .describe("Where to insert the cell"),
             };
 
             // Always include dom/cod fields for morphisms, even if no objects available yet
@@ -242,7 +293,13 @@ export const argsSchema = (doc: ModelDoc) => {
 export default async function addCell(
     handle: DocHandle<ModelDoc>,
     _repo: Repo,
-    args?: { cellType?: string; name?: string; dom?: string; cod?: string }
+    args?: {
+        cellType?: string;
+        name?: string;
+        dom?: string;
+        cod?: string;
+        position?: string;
+    }
 ) {
     // Ensure theories are loaded before proceeding
     await preloadPromise;
@@ -276,18 +333,10 @@ export default async function addCell(
             const formalContent = NotebookUtils.getFormalContent(
                 notebook
             ) as ModelJudgment[];
-            console.log("Finding object by name:", name);
-            console.log(
-                "Available objects:",
-                formalContent
-                    .filter((j) => j.tag === "object")
-                    .map((o) => ({ id: (o as any).id, name: (o as any).name }))
+            const objects = formalContent.filter(
+                (j): j is ObjectDecl => j.tag === "object"
             );
-            const obj = formalContent.find(
-                (j): j is ObjectDecl =>
-                    j.tag === "object" && (j.name === name || j.id === name)
-            );
-            console.log("Found object:", obj);
+            const obj = objects.find((o) => o.name === name || o.id === name);
             return obj?.id ?? null;
         };
 
@@ -302,48 +351,135 @@ export default async function addCell(
             const content = newCell.content as ModelJudgment;
             if (content.tag === "morphism") {
                 const morphism = content as MorphismDecl;
+                const theory = theoriesCache.get(doc.theory);
 
-                console.log("Setting dom/cod from args:", args);
-                console.log(
-                    "Before - dom:",
-                    morphism.dom,
-                    "cod:",
-                    morphism.cod
+                // Get morphism type metadata to check for apply operations
+                const morTypeMeta = theory?.modelTypes?.find(
+                    (m) =>
+                        m.tag === "MorType" &&
+                        JSON.stringify(m.morType) ===
+                            JSON.stringify(morphism.morType)
                 );
 
                 // Resolve name to ID for domain
                 if (args?.dom) {
                     const domId = findObjectIdByName(args.dom);
-                    console.log("Resolved dom ID:", domId);
                     if (domId) {
-                        morphism.dom = { tag: "Basic", content: domId };
-                    } else {
-                        console.warn(
-                            "Could not find object for dom:",
-                            args.dom
-                        );
+                        const basicOb = {
+                            tag: "Basic" as const,
+                            content: domId,
+                        };
+                        // Wrap in App if there's a domain apply operation
+                        if (
+                            morTypeMeta?.tag === "MorType" &&
+                            morTypeMeta.domain?.apply &&
+                            theory
+                        ) {
+                            // Get the type of the operation's argument
+                            const argType = theory.theory.dom(
+                                morTypeMeta.domain.apply
+                            );
+                            // The argument should be a list, so wrap in List structure
+                            const listOb = {
+                                tag: "List" as const,
+                                content: {
+                                    modality:
+                                        argType.tag === "ModeApp"
+                                            ? argType.content.modality
+                                            : "SymmetricList",
+                                    objects: [basicOb],
+                                },
+                            };
+                            morphism.dom = {
+                                tag: "App" as const,
+                                content: {
+                                    op: morTypeMeta.domain.apply,
+                                    ob: listOb,
+                                },
+                            };
+                        } else {
+                            morphism.dom = basicOb;
+                        }
                     }
                 }
 
                 // Resolve name to ID for codomain
                 if (args?.cod) {
                     const codId = findObjectIdByName(args.cod);
-                    console.log("Resolved cod ID:", codId);
                     if (codId) {
-                        morphism.cod = { tag: "Basic", content: codId };
-                    } else {
-                        console.warn(
-                            "Could not find object for cod:",
-                            args.cod
-                        );
+                        const basicOb = {
+                            tag: "Basic" as const,
+                            content: codId,
+                        };
+                        // Wrap in App if there's a codomain apply operation
+                        if (
+                            morTypeMeta?.tag === "MorType" &&
+                            morTypeMeta.codomain?.apply &&
+                            theory
+                        ) {
+                            // Get the type of the operation's argument
+                            const argType = theory.theory.dom(
+                                morTypeMeta.codomain.apply
+                            );
+                            // The argument should be a list, so wrap in List structure
+                            const listOb = {
+                                tag: "List" as const,
+                                content: {
+                                    modality:
+                                        argType.tag === "ModeApp"
+                                            ? argType.content.modality
+                                            : "SymmetricList",
+                                    objects: [basicOb],
+                                },
+                            };
+                            morphism.cod = {
+                                tag: "App" as const,
+                                content: {
+                                    op: morTypeMeta.codomain.apply,
+                                    ob: listOb,
+                                },
+                            };
+                        } else {
+                            morphism.cod = basicOb;
+                        }
                     }
                 }
-
-                console.log("After - dom:", morphism.dom, "cod:", morphism.cod);
             }
         }
 
-        const index = notebook.cellOrder.length;
+        // Determine insertion index based on position
+        let index: number;
+        const position = args?.position || "end";
+
+        if (position === "end") {
+            index = notebook.cellOrder.length;
+        } else if (position === "beginning") {
+            index = 0;
+        } else if (position.startsWith("after:")) {
+            // Extract the cell name/id after "after:"
+            const afterCellLabel = position.substring(6);
+            const formalContent = NotebookUtils.getFormalContent(
+                notebook
+            ) as ModelJudgment[];
+            const afterCell = formalContent.find(
+                (c) => c.name === afterCellLabel || c.id === afterCellLabel
+            );
+
+            if (afterCell) {
+                const afterIndex = notebook.cellOrder.indexOf(afterCell.id);
+                index =
+                    afterIndex >= 0
+                        ? afterIndex + 1
+                        : notebook.cellOrder.length;
+            } else {
+                // If cell not found, default to end
+                index = notebook.cellOrder.length;
+            }
+        } else {
+            // Default to end if position is invalid
+            index = notebook.cellOrder.length;
+        }
+
         NotebookUtils.insertCellAtIndex(notebook, newCell, index);
     });
 }
