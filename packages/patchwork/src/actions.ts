@@ -1,4 +1,4 @@
-import { DocHandle, Repo } from "@automerge/automerge-repo/slim";
+import type { DocHandle, Repo } from "@automerge/automerge-repo/slim";
 import {
     newMorphismDecl,
     newObjectDecl,
