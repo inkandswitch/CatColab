@@ -1,5 +1,9 @@
 import type { Repo } from "@automerge/automerge-repo";
-import { useDocHandle, useDocument, useRepo } from "@automerge/automerge-repo-react-hooks";
+import {
+    useDocHandle,
+    useDocument,
+    useRepo,
+} from "@automerge/automerge-repo-react-hooks";
 import type { EditorProps } from "@patchwork/sdk";
 import type { Cell, Uuid } from "catlog-wasm";
 import React, { useEffect, useMemo, useRef } from "react";
@@ -17,24 +21,34 @@ export type SolidToolProps = {
     repo: Repo;
 };
 
-export const ModelTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({ docUrl }) => {
+export const ModelTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
+    docUrl,
+}) => {
     return React.createElement(Tool, {
         docUrl,
         solidComponent: ModelPaneComponent,
     });
 };
 
-export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({ docUrl }) => {
+export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
+    docUrl,
+}) => {
     const [modelDoc] = useDocument<ModelDoc>(docUrl, { suspense: true });
 
     const analysisDocUrl = modelDoc.analysisDocUrl;
 
-    const resolvedAnalysisDocUrl = useMemo(() => analysisDocUrl, [modelDoc.analysisDocUrl]);
+    const resolvedAnalysisDocUrl = useMemo(
+        () => analysisDocUrl,
+        [modelDoc.analysisDocUrl]
+    );
     const resolvedModelDocUrl = useMemo(() => docUrl, [docUrl]);
 
-    const analysisDocHandle = useDocHandle<AnalysisDoc>(resolvedAnalysisDocUrl, {
-        suspense: true,
-    });
+    const analysisDocHandle = useDocHandle<AnalysisDoc>(
+        resolvedAnalysisDocUrl,
+        {
+            suspense: true,
+        }
+    );
 
     // hack: update the analysis document to point to the current model document
     //
@@ -57,6 +71,8 @@ export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({ docUr
         }
         analysisDocHandle.change((doc) => {
             doc.analysisOf = {
+                type: "analysis-of",
+                _server: "sync.automerge.org",
                 _id: resolvedModelDocUrl,
             };
         });
@@ -72,7 +88,9 @@ export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({ docUr
     });
 };
 
-export const SideBySideTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = (props) => {
+export const SideBySideTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = (
+    props
+) => {
     return React.createElement("div", { className: "split-view-container" }, [
         React.createElement("div", { className: "split-view-pane" }, [
             React.createElement(ModelTool, props),
@@ -114,7 +132,7 @@ const Tool: React.FC<
                         docUrl,
                         repo,
                     }),
-                solidContainerRef.current,
+                solidContainerRef.current
             );
         }
 

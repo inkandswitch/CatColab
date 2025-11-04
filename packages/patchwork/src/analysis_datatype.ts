@@ -13,6 +13,8 @@ export type AnalysisDoc = HasVersionControlMetadata<Uuid, Cell<unknown>> & {
         cells: any[];
     };
     analysisOf?: {
+        type: "analysis-of";
+        _server: string;
         _id: AutomergeUrl;
     };
     analysisType: "model";
