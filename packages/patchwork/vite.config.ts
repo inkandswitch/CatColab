@@ -9,12 +9,11 @@ import { EXTERNAL_DEPENDENCIES } from "@patchwork/sdk/shared-dependencies";
 export default defineConfig({
     base: "./",
     plugins: [topLevelAwait(), wasm(), solid(), cssInjectedByJsPlugin()],
-
     build: {
         minify: false,
         rollupOptions: {
             external: EXTERNAL_DEPENDENCIES,
-            input: "./src/index.ts",
+            input: { index: "./src/index.ts", stdlib: "./src/stdlib.ts" },
             output: {
                 format: "es",
                 entryFileNames: "[name].js",
