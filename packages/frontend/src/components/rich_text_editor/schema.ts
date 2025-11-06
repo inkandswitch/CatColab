@@ -1,5 +1,9 @@
 import type { DocHandle, Prop } from "@automerge/automerge-repo";
-import { type MappedSchemaSpec, SchemaAdapter, init } from "@automerge/prosemirror";
+import {
+    type MappedSchemaSpec,
+    SchemaAdapter,
+    init,
+} from "@automerge/prosemirror";
 import type { Node, Schema } from "prosemirror-model";
 import type { Plugin } from "prosemirror-state";
 import { basicSchema } from "./basic_schema";
@@ -11,7 +15,7 @@ import { katexSchema } from "./katex_schema";
 // cleverish typescript with the `satisfies` operator to make our schema type accurately reflect the
 // contents of the const that defines it. This allows us to avoid doing tedious checks or assertions
 // wherever we use the schema.
-const customSchemaSpec = {
+const customSchemaSpec: any = {
     nodes: {
         ...basicSchema.nodes,
         ...catcolabSchema.nodes,
@@ -25,11 +29,11 @@ const customSchemaSpec = {
 type NodeNames = keyof typeof customSchemaSpec.nodes;
 type MarkNames = keyof NonNullable<typeof customSchemaSpec.marks>;
 
-export type CustomSchema = Schema<NodeNames, MarkNames>;
+export type CustomSchema = Schema<any, any>;
 
 export function proseMirrorAutomergeInit(
     handle: DocHandle<unknown>,
-    path: Prop[],
+    path: Prop[]
 ): {
     schema: CustomSchema;
     pmDoc: Node;

@@ -16,10 +16,12 @@ const existingGuideFilter = {
 export const helpRoutes: RouteDefinition[] = [
     {
         path: "/",
+        // @ts-expect-error - MDX type mismatch
         component: lazyMdx(() => import("./overview.mdx")),
     },
     {
         path: "/credits",
+        // @ts-expect-error - MDX type mismatch
         component: lazyMdx(() => import("./credits.mdx")),
     },
     {

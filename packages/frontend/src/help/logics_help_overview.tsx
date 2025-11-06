@@ -12,6 +12,7 @@ export default function LogicsHelpOverview() {
 
     return (
         <>
+            {/* @ts-ignore - MDX type mismatch */}
             <LogicsHelpOverviewContent />
             <For each={Array.from(theories.groupedMetadata().entries())}>
                 {([group, theories]) => (
@@ -22,7 +23,9 @@ export default function LogicsHelpOverview() {
                                 {(theoryMeta) => (
                                     <>
                                         <dt>
-                                            <A href={`../logics/${theoryMeta.id}`}>
+                                            <A
+                                                href={`../logics/${theoryMeta.id}`}
+                                            >
                                                 {theoryMeta.name}
                                             </A>
                                         </dt>

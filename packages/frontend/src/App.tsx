@@ -3,9 +3,20 @@ import invariant from "tiny-invariant";
 import * as uuid from "uuid";
 
 import { MultiProvider } from "@solid-primitives/context";
-import { Navigate, type RouteDefinition, type RouteSectionProps, Router } from "@solidjs/router";
+import {
+    Navigate,
+    type RouteDefinition,
+    type RouteSectionProps,
+    Router,
+} from "@solidjs/router";
 import { FirebaseProvider } from "solid-firebase";
-import { ErrorBoundary, Show, createResource, createSignal, lazy } from "solid-js";
+import {
+    ErrorBoundary,
+    Show,
+    createResource,
+    createSignal,
+    lazy,
+} from "solid-js";
 
 import Dialog, { Content, Portal } from "@corvu/dialog";
 import { getAuth, signOut } from "firebase/auth";
@@ -19,7 +30,9 @@ import { TheoryLibraryContext } from "./theory";
 
 const serverUrl = import.meta.env.VITE_SERVER_URL;
 const repoUrl = import.meta.env.VITE_AUTOMERGE_REPO_URL;
-const firebaseOptions = JSON.parse(import.meta.env.VITE_FIREBASE_OPTIONS) as FirebaseOptions;
+const firebaseOptions = JSON.parse(
+    import.meta.env.VITE_FIREBASE_OPTIONS
+) as FirebaseOptions;
 
 const Root = (props: RouteSectionProps<unknown>) => {
     invariant(serverUrl, "Must set environment variable VITE_SERVER_URL");
@@ -47,7 +60,7 @@ const Root = (props: RouteSectionProps<unknown>) => {
         },
         {
             initialValue: false,
-        },
+        }
     );
 
     return (
@@ -58,7 +71,9 @@ const Root = (props: RouteSectionProps<unknown>) => {
             ]}
         >
             <FirebaseProvider app={firebaseApp}>
-                <ErrorBoundary fallback={(err) => <ErrorBoundaryDialog error={err} />}>
+                <ErrorBoundary
+                    fallback={(err) => <ErrorBoundaryDialog error={err} />}
+                >
                     <PageContainer>{props.children}</PageContainer>
                 </ErrorBoundary>
                 <Show when={isSessionInvalid()}>
@@ -82,7 +97,10 @@ export function SessionExpiredModal() {
             <Portal>
                 <Content class="popup error-dialog">
                     <h3>Session Expired</h3>
-                    <p>Your session is no longer valid. Please reload the page to continue.</p>
+                    <p>
+                        Your session is no longer valid. Please reload the page
+                        to continue.
+                    </p>
                     <button onClick={handleReload} disabled={reloading()}>
                         {reloading() ? "Reloading..." : "Reload Page"}
                     </button>
@@ -99,7 +117,11 @@ function CreateModel() {
         return createModel(api, stdTheories.defaultTheoryMetadata().id);
     });
 
-    return <Show when={ref()}>{(ref) => <Navigate href={`/model/${ref()}`} />}</Show>;
+    return (
+        <Show when={ref()}>
+            {(ref) => <Navigate href={`/model/${ref()}`} />}
+        </Show>
+    );
 }
 
 const refIsUUIDFilter = {

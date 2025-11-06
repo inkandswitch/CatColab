@@ -1,6 +1,12 @@
 // from https://github.com/automerge/automerge-prosemirror/blob/main/src/basicSchema.ts
 
-import type { DOMOutputSpec, Mark, MarkSpec, Node, NodeSpec } from "prosemirror-model";
+import type {
+    DOMOutputSpec,
+    Mark,
+    MarkSpec,
+    Node,
+    NodeSpec,
+} from "prosemirror-model";
 
 import { next as am } from "@automerge/automerge/slim";
 import type { MappedSchemaSpec } from "@automerge/prosemirror";
@@ -22,7 +28,7 @@ const olDOM: DOMOutputSpec = ["ol", 0];
 const ulDOM: DOMOutputSpec = ["ul", 0];
 const liDOM: DOMOutputSpec = ["li", 0];
 
-export const basicSchema = {
+export const basicSchema: any = {
     nodes: {
         /// NodeSpec The top level document node.
         doc: {
@@ -193,7 +199,9 @@ export const basicSchema = {
                 },
             ],
             toDOM(node) {
-                return node.attrs.order === 1 ? olDOM : ["ol", { start: node.attrs.order }, 0];
+                return node.attrs.order === 1
+                    ? olDOM
+                    : ["ol", { start: node.attrs.order }, 0];
             },
         } as NodeSpec,
 
@@ -272,7 +280,9 @@ export const basicSchema = {
                                     href: value.href || "",
                                 };
                             } catch (e) {
-                                console.warn("failed to parse link mark as JSON");
+                                console.warn(
+                                    "failed to parse link mark as JSON"
+                                );
                             }
                         }
                         return {
@@ -318,7 +328,8 @@ export const basicSchema = {
                 // tags with a font-weight normal.
                 {
                     tag: "b",
-                    getAttrs: (node: HTMLElement) => node.style.fontWeight !== "normal" && null,
+                    getAttrs: (node: HTMLElement) =>
+                        node.style.fontWeight !== "normal" && null,
                 },
                 {
                     style: "font-weight=400",
@@ -326,7 +337,8 @@ export const basicSchema = {
                 },
                 {
                     style: "font-weight",
-                    getAttrs: (value: string) => /^(bold(er)?|[5-9]\d{2,})$/.test(value) && null,
+                    getAttrs: (value: string) =>
+                        /^(bold(er)?|[5-9]\d{2,})$/.test(value) && null,
                 },
             ],
             toDOM() {

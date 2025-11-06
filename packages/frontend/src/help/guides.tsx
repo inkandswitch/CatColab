@@ -28,11 +28,10 @@ export default function GuidesHelpPage() {
     return <GuidesHelp guides={guidesList} />;
 }
 
-function GuidesHelp(props: {
-    guides: Guide[];
-}) {
+function GuidesHelp(props: { guides: Guide[] }) {
     return (
         <>
+            {/* @ts-ignore - MDX type mismatch */}
             <GuidesContent />
 
             <dl>

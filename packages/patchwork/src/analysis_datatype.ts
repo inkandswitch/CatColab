@@ -10,7 +10,8 @@ export type AnalysisDoc = HasVersionControlMetadata<Uuid, Cell<unknown>> & {
     theory: string;
     type: string;
     notebook: {
-        cells: any[];
+        cellContents: Record<Uuid, Cell<unknown>>;
+        cellOrder: Uuid[];
     };
     analysisOf?: {
         type: "analysis-of";
@@ -18,6 +19,7 @@ export type AnalysisDoc = HasVersionControlMetadata<Uuid, Cell<unknown>> & {
         _id: AutomergeUrl;
     };
     analysisType: "model";
+    version: string;
 };
 
 // FUNCTIONS
@@ -41,8 +43,10 @@ export const init = (doc: AnalysisDoc) => {
         type: "analysis",
         analysisType: "model",
         notebook: {
-            cells: [],
+            cellContents: {},
+            cellOrder: [],
         },
+        version: "1",
     });
 };
 

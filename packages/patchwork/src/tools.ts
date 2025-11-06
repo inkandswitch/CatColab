@@ -5,9 +5,10 @@ import {
     useRepo,
 } from "@automerge/automerge-repo-react-hooks";
 import type { EditorProps } from "@patchwork/sdk";
+import { useAllAnnotations } from "@patchwork/sdk/annotations";
 import type { Cell, Uuid } from "catlog-wasm";
 import React, { useEffect, useMemo, useRef } from "react";
-import type { JSX } from "solid-js";
+import { type Accessor, type JSX, createSignal } from "solid-js";
 
 import { createComponent, render } from "solid-js/web";
 import type { AnalysisDoc } from "./analysis_datatype";
@@ -19,6 +20,7 @@ import "./tools.css";
 export type SolidToolProps = {
     docUrl: string;
     repo: Repo;
+    annotationsContextValue: Accessor<ReturnType<typeof useAllAnnotations>>;
 };
 
 export const ModelTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
@@ -35,20 +37,29 @@ export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
 }) => {
     const [modelDoc] = useDocument<ModelDoc>(docUrl, { suspense: true });
 
+    const { docLinksWithAnnotations } = useAllAnnotations();
+
     const analysisDocUrl = modelDoc.analysisDocUrl;
 
-    const resolvedAnalysisDocUrl = useMemo(
-        () => analysisDocUrl,
-        [modelDoc.analysisDocUrl]
-    );
-    const resolvedModelDocUrl = useMemo(() => docUrl, [docUrl]);
-
-    const analysisDocHandle = useDocHandle<AnalysisDoc>(
-        resolvedAnalysisDocUrl,
-        {
-            suspense: true,
+    const resolvedAnalysisDocUrl = useMemo(() => {
+        if (!analysisDocUrl) {
+            return undefined;
         }
+
+        return (
+            docLinksWithAnnotations.find((a) => a.main?.url === analysisDocUrl)
+                ?.url ?? analysisDocUrl
+        );
+    }, [analysisDocUrl, docLinksWithAnnotations]);
+
+    const resolvedModelDocUrl = useMemo(
+        () =>
+            docLinksWithAnnotations.find((a) => a.main?.url === docUrl)?.url ??
+            docUrl,
+        [docUrl, docLinksWithAnnotations]
     );
+
+    const analysisDocHandle = useDocHandle<AnalysisDoc>(resolvedAnalysisDocUrl);
 
     // hack: update the analysis document to point to the current model document
     //
@@ -76,7 +87,7 @@ export const AnalysisTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
                 _id: resolvedModelDocUrl,
             };
         });
-    }, [resolvedAnalysisDocUrl, modelDoc, analysisDocHandle]);
+    }, [modelDoc, analysisDocHandle, resolvedModelDocUrl]);
 
     if (!resolvedAnalysisDocUrl) {
         return null;
@@ -111,12 +122,28 @@ const Tool: React.FC<
     const handle = useDocHandle<ModelDoc>(docUrl, { suspense: true });
     const repo = useRepo();
 
+    const allAnnotations = useAllAnnotations();
+
     const solidContainerRef = useRef<HTMLDivElement>(null);
     const solidDisposeRef = useRef<(() => void) | null>(null);
 
+    const [getAnnotationsContextValue, setAnnotationsContextValue] = useMemo(
+        () => createSignal<ReturnType<typeof useAllAnnotations> | null>(null),
+        []
+    );
+
+    // update annoations context whenever it changes
+    useEffect(() => {
+        if (allAnnotations) {
+            setAnnotationsContextValue(allAnnotations);
+        }
+    }, [allAnnotations, setAnnotationsContextValue]);
+
     // mount the solid component once the handle and repo are available
     useEffect(() => {
-        if (!handle || !repo) {
+        const annotationContextValue = getAnnotationsContextValue();
+
+        if (!handle || !repo || !annotationContextValue) {
             return;
         }
 
@@ -131,6 +158,8 @@ const Tool: React.FC<
                     createComponent(solidComponent, {
                         docUrl,
                         repo,
+                        annotationsContextValue: () =>
+                            getAnnotationsContextValue()!,
                     }),
                 solidContainerRef.current
             );
@@ -143,7 +172,7 @@ const Tool: React.FC<
                 solidDisposeRef.current = null;
             }
         };
-    }, [docUrl, handle, solidComponent]);
+    }, [docUrl, handle, solidComponent, getAnnotationsContextValue]);
 
     if (!handle) {
         return null;

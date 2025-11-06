@@ -1,4 +1,6 @@
 import type { Plugin } from "@patchwork/sdk/plugins";
+import { stockFlowAIPrompt } from "./ai-prompt";
+import type { LoadableAnnotationPlugin } from "@patchwork/sdk/annotations";
 
 export const plugins: Plugin<any>[] = [
     {
@@ -72,34 +74,6 @@ export const plugins: Plugin<any>[] = [
             return await import("./reorder_cell");
         },
     },
-    // {
-    //     type: "patchwork:tool",
-    //     id: "catcolab-model-view",
-    //     name: "Model",
-    //     icon: "Zap",
-    //     supportedDataTypes: ["catcolab-model"],
-    //     async load() {
-    //         const { ModelTool } = await import("./tools");
-
-    //         return {
-    //             EditorComponent: ModelTool,
-    //         };
-    //     },
-    // },
-    // {
-    //     type: "patchwork:tool",
-    //     id: "catcolab-model-analysis-view",
-    //     name: "Analysis",
-    //     icon: "Zap",
-    //     supportedDataTypes: ["catcolab-model"],
-    //     async load() {
-    //         const { AnalysisTool } = await import("./tools");
-
-    //         return {
-    //             EditorComponent: AnalysisTool,
-    //         };
-    //     },
-    // },
     {
         type: "patchwork:tool",
         id: "catcolab-model-side-by-side-view",
@@ -113,4 +87,25 @@ export const plugins: Plugin<any>[] = [
             };
         },
     },
+    stockFlowAIPrompt,
+    {
+        type: "patchwork:annotations",
+        name: "Model Annotations",
+        id: "model-annotations",
+        supportedDataTypes: ["catcolab-model"],
+        async load() {
+            const { plugin } = await import("./model_annotations");
+            return plugin;
+        },
+    } as LoadableAnnotationPlugin,
+    {
+        type: "patchwork:annotations",
+        name: "Analysis Annotations",
+        id: "analysis-annotations",
+        supportedDataTypes: ["catcolab-analysis"],
+        async load() {
+            const { plugin } = await import("./analysis_annotations");
+            return plugin;
+        },
+    } as LoadableAnnotationPlugin,
 ];
