@@ -14,7 +14,9 @@ export default defineConfig({
         wasm(),
         solid(),
         tailwindcss(),
-        cssInjectedByJsPlugin(),
+        cssInjectedByJsPlugin({
+            jsAssetsFilterFunction: (output) => output.fileName === "index.js",
+        }),
     ],
 
     build: {

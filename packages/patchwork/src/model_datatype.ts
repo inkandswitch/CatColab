@@ -124,7 +124,7 @@ const valueOfAnchor = (doc: ModelDoc, anchor: Uuid): Cell<unknown> => {
 const sortAnchorsBy = (doc: ModelDoc, anchor: Uuid): number => {
     return doc.notebook.cellOrder.findIndex((cellId) => cellId === anchor);
 };
-
+/*
 const includePatchInChangeGroup = (patch: A.Patch | TextPatch) => {
     return patch.path[0] === "notebook";
 };
@@ -146,6 +146,7 @@ export const includeChangeInHistory = (doc: ModelDoc) => {
         );
     };
 };
+*/
 
 export const markCopy = (doc: ModelDoc) => {
     doc.name = `Copy of ${doc.name}`;
@@ -199,6 +200,6 @@ export const dataType: DataTypeImplementation<ModelDoc, Uuid, Cell<unknown>> = {
     sortAnchorsBy,
     valueOfAnchor,
     patchesToAnnotations,
-    includePatchInChangeGroup,
+    // includePatchInChangeGroup,
     links,
 };
