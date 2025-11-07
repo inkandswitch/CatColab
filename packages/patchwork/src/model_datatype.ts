@@ -45,71 +45,79 @@ export const patchesToAnnotations = (
     )?.snapshot;
 
     patches.forEach((patch) => {
-        if (patch.path[0] !== "notebook" || patch.path[1] !== "cells") {
+        if (patch.path[0] !== "notebook") {
             return;
         }
 
-        const cellIndex = patch.path[2] as number;
+        // Handle changes to cellOrder (additions/deletions)
+        if (patch.path[1] === "cellOrder") {
+            const cellIndex = patch.path[2] as number;
 
-        if (patch.path.length === 3) {
-            switch (patch.action) {
-                case "del": {
-                    if (!docBefore) {
+            if (patch.path.length === 3) {
+                switch (patch.action) {
+                    case "del": {
+                        if (!docBefore) {
+                            return;
+                        }
+
+                        const cellId = docBefore.notebook.cellOrder[cellIndex];
+                        const cell = docBefore.notebook.cellContents[cellId];
+                        annotations.push({
+                            type: "deleted",
+                            deleted: cell,
+                            anchor: cellId,
+                        } as Annotation<Uuid, Cell<unknown>>);
                         return;
                     }
-
-                    const cell = docBefore.notebook.cells[cellIndex];
-                    annotations.push({
-                        type: "deleted",
-                        deleted: cell,
-                        anchor: cell!.id,
-                    } as Annotation<Uuid, Cell<unknown>>);
-                    return;
-                }
-                case "insert": {
-                    changedCells.add(doc.notebook.cells[cellIndex]!.id);
-                    const cell = doc.notebook.cells[cellIndex];
-                    annotations.push({
-                        type: "added",
-                        added: cell,
-                        anchor: cell!.id,
-                    } as Annotation<Uuid, Cell<unknown>>);
-                    return;
+                    case "insert": {
+                        const cellId = doc.notebook.cellOrder[cellIndex];
+                        changedCells.add(cellId);
+                        const cell = doc.notebook.cellContents[cellId];
+                        annotations.push({
+                            type: "added",
+                            added: cell,
+                            anchor: cellId,
+                        } as Annotation<Uuid, Cell<unknown>>);
+                        return;
+                    }
                 }
             }
         }
 
-        switch (patch.action) {
-            case "insert":
-            case "splice": {
-                const after = doc.notebook.cells[cellIndex];
+        // Handle changes to cellContents (modifications)
+        if (patch.path[1] === "cellContents") {
+            const cellId = patch.path[2] as Uuid;
 
-                if (changedCells.has(after!.id)) {
-                    return;
-                }
+            switch (patch.action) {
+                case "put":
+                case "splice": {
+                    const after = doc.notebook.cellContents[cellId];
 
-                const before = docBefore?.notebook.cells.find(
-                    (cell) => cell.id === after!.id
-                );
+                    if (changedCells.has(cellId)) {
+                        return;
+                    }
 
-                if (!before) {
+                    const before = docBefore?.notebook.cellContents[cellId];
+
+                    if (!before) {
+                        annotations.push({
+                            type: "added",
+                            added: after,
+                            anchor: cellId,
+                        } as Annotation<Uuid, Cell<unknown>>);
+                        changedCells.add(cellId);
+                        return;
+                    }
+
                     annotations.push({
-                        type: "added",
-                        added: after,
-                        anchor: after!.id,
+                        type: "changed",
+                        before: before,
+                        after: after,
+                        anchor: cellId,
                     } as Annotation<Uuid, Cell<unknown>>);
-                    changedCells.add(after!.id);
+                    changedCells.add(cellId);
                     return;
                 }
-
-                annotations.push({
-                    type: "changed",
-                    before: before,
-                    after: after,
-                    anchor: after!.id,
-                } as Annotation<Uuid, Cell<unknown>>);
-                changedCells.add(after!.id);
-                return;
             }
         }
     });

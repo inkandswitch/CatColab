@@ -1,7 +1,11 @@
 import * as Automerge from "@automerge/automerge";
 import { AutomergeUrl, Repo } from "@automerge/automerge-repo";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
-import { Annotation, DiffAnnotation, Pointer } from "@patchwork/sdk/annotations";
+import {
+    Annotation,
+    DiffAnnotation,
+    Pointer,
+} from "@patchwork/sdk/annotations";
 import { Cell, Uuid } from "catlog-wasm";
 import React, { useEffect, useRef } from "react";
 import { Component } from "solid-js";
@@ -10,14 +14,13 @@ import { AnalysisDoc } from "./analysis_datatype";
 import { ModelDoc } from "./model_datatype";
 import "./annotations.css";
 
-export class CellPointer<D extends ModelDoc | AnalysisDoc> implements Pointer<D, Uuid, any> {
-    constructor(
-        readonly doc: D,
-        readonly target: Uuid,
-    ) {}
+export class CellPointer<D extends ModelDoc | AnalysisDoc>
+    implements Pointer<D, Uuid, any>
+{
+    constructor(readonly doc: D, readonly target: Uuid) {}
 
     get value(): any {
-        return this.doc.notebook.cells.find((cell) => cell.id === this.target)!;
+        return this.doc.notebook.cellContents[this.target];
     }
     get sortValue(): string | number | (string | number)[] {
         return this.target;
@@ -30,7 +33,7 @@ export class CellPointer<D extends ModelDoc | AnalysisDoc> implements Pointer<D,
 export const patchesToAnnotation = <D extends ModelDoc | AnalysisDoc>(
     docBefore: D,
     docAfter: D,
-    patches: Automerge.Patch[],
+    patches: Automerge.Patch[]
 ): DiffAnnotation<D, Uuid, Cell<unknown>>[] => {
     const annotations: DiffAnnotation<D, Uuid, Cell<unknown>>[] = [];
 
@@ -38,44 +41,81 @@ export const patchesToAnnotation = <D extends ModelDoc | AnalysisDoc>(
     const changedCellIds = new Set<Uuid>();
 
     patches.forEach((patch) => {
-        if (patch.path[0] !== "notebook" || patch.path[1] !== "cells") {
+        if (patch.path[0] !== "notebook") {
             return;
         }
 
-        const cellIndex = patch.path[2] as number;
+        // Handle changes to cellOrder (additions/deletions)
+        if (patch.path[1] === "cellOrder") {
+            const cellIndex = patch.path[2] as number;
 
-        switch (patch.action) {
-            case "del": {
-                const cellId = docBefore.notebook.cells[cellIndex].id;
-                const cellAfter = docAfter.notebook.cells.find((cell) => cell.id === cellId);
+            switch (patch.action) {
+                case "del": {
+                    const cellId = docBefore.notebook.cellOrder[cellIndex];
+                    const cellAfter = docAfter.notebook.cellContents[cellId];
 
-                if (cellAfter) {
-                    if (changedCellIds.has(cellId)) {
-                        break;
+                    if (cellAfter) {
+                        if (changedCellIds.has(cellId)) {
+                            break;
+                        }
+
+                        changedCellIds.add(cellId);
+                        annotations.push({
+                            type: "changed",
+                            before: new CellPointer(docBefore, cellId),
+                            after: new CellPointer(docAfter, cellId),
+                        });
+                    } else {
+                        annotations.push({
+                            type: "deleted",
+                            pointer: new CellPointer(docBefore, cellId),
+                        });
                     }
-
-                    changedCellIds.add(cellId);
-                    annotations.push({
-                        type: "changed",
-                        before: new CellPointer(docBefore, cellId),
-                        after: new CellPointer(docAfter, cellId),
-                    });
-                } else {
-                    annotations.push({
-                        type: "deleted",
-                        pointer: new CellPointer(docBefore, cellId),
-                    });
+                    break;
                 }
-                break;
+
+                case "insert": {
+                    const cellId = docAfter.notebook.cellOrder[cellIndex];
+                    const cellBefore = docBefore.notebook.cellContents[cellId];
+
+                    if (cellBefore) {
+                        if (changedCellIds.has(cellId)) {
+                            break;
+                        }
+
+                        changedCellIds.add(cellId);
+                        annotations.push({
+                            type: "changed",
+                            before: new CellPointer(docBefore, cellId),
+                            after: new CellPointer(docAfter, cellId),
+                        });
+                    } else {
+                        if (newCellIds.has(cellId)) {
+                            break;
+                        }
+
+                        newCellIds.add(cellId);
+                        annotations.push({
+                            type: "added",
+                            pointer: new CellPointer(docAfter, cellId),
+                        });
+                    }
+                    break;
+                }
             }
+        }
 
-            case "splice":
-            case "put": {
-                const cellId = docAfter.notebook.cells[cellIndex].id;
-                const cellBefore = docBefore.notebook.cells.find((cell) => cell.id === cellId);
-                if (cellBefore) {
+        // Handle changes to cellContents (modifications)
+        if (patch.path[1] === "cellContents") {
+            const cellId = patch.path[2] as Uuid;
+
+            if (patch.action === "put" || patch.action === "splice") {
+                const cellBefore = docBefore.notebook.cellContents[cellId];
+                const cellAfter = docAfter.notebook.cellContents[cellId];
+
+                if (cellBefore && cellAfter) {
                     if (changedCellIds.has(cellId)) {
-                        break;
+                        return;
                     }
 
                     changedCellIds.add(cellId);
@@ -84,18 +124,7 @@ export const patchesToAnnotation = <D extends ModelDoc | AnalysisDoc>(
                         before: new CellPointer(docBefore, cellId),
                         after: new CellPointer(docAfter, cellId),
                     });
-                } else {
-                    if (newCellIds.has(cellId)) {
-                        break;
-                    }
-
-                    newCellIds.add(cellId);
-                    annotations.push({
-                        type: "added",
-                        pointer: new CellPointer(docAfter, cellId),
-                    });
                 }
-                break;
             }
         }
     });
@@ -136,7 +165,7 @@ export function CellAnnotationsViewWrapper({
                         annotations,
                         docUrl,
                     }),
-                solidContainerRef.current,
+                solidContainerRef.current
             );
         }
 
