@@ -6,7 +6,8 @@ import type {
     Pointer,
     useAllAnnotations,
 } from "@patchwork/sdk/annotations";
-import { Accessor, createContext, useContext } from "solid-js";
+import type { Accessor } from "solid-js";
+import { createContext, useContext } from "solid-js";
 
 export type DocUrlWithAnnotations = {
     originalUrl: AutomergeUrl;
@@ -14,10 +15,11 @@ export type DocUrlWithAnnotations = {
     annotations: Annotation[];
 };
 
-export const AnnotationsContext = createContext<Accessor<ReturnType<typeof useAllAnnotations>>>();
+export const AnnotationsContext =
+    createContext<Accessor<ReturnType<typeof useAllAnnotations>>>();
 
 export const useAnnotationsOfDoc = <D, T, V>(
-    docUrl: AutomergeUrl,
+    docUrl: AutomergeUrl
 ): {
     annotations: Accessor<AnnotationWithUIState<D, T, V>[]>;
     selection: Accessor<Pointer<D, T, V>[]>;
@@ -33,14 +35,16 @@ export const useAnnotationsOfDoc = <D, T, V>(
         return (context().docLinksWithAnnotations.find(
             (docLinkWithAnnotations) =>
                 docLinkWithAnnotations.url === docUrl ||
-                docLinkWithAnnotations.main?.url === docUrl,
+                docLinkWithAnnotations.main?.url === docUrl
         )?.annotations ?? []) as AnnotationWithUIState<D, T, V>[];
     };
 
     return {
         annotations,
         setSelection: (pointers: Pointer<D, T, V>[]) => {
-            context().setSelection(pointers.map((pointer) => ({ ...pointer, docUrl })));
+            context().setSelection(
+                pointers.map((pointer) => ({ ...pointer, docUrl }))
+            );
         },
         selection: () => {
             return context()
@@ -51,7 +55,9 @@ export const useAnnotationsOfDoc = <D, T, V>(
                 });
         },
         addComment: (pointers: Pointer<D, T, V>[]): Promise<Comment> => {
-            return context().addComment(pointers.map((pointer) => ({ ...pointer, docUrl })));
+            return context().addComment(
+                pointers.map((pointer) => ({ ...pointer, docUrl }))
+            );
         },
     };
 };

@@ -35,6 +35,7 @@ import {
 } from "./types";
 
 import "./model_editor.css";
+import { AnnotationWithUIState } from "@patchwork/sdk/annotations";
 
 export default function ModelPage() {
     const params = useParams();
@@ -53,9 +54,7 @@ export default function ModelPage() {
     );
 }
 
-export function ModelDocumentEditor(props: {
-    liveModel: LiveModelDocument;
-}) {
+export function ModelDocumentEditor(props: { liveModel: LiveModelDocument }) {
     return (
         <div class="growable-container">
             <Toolbar>
@@ -73,6 +72,7 @@ export function ModelDocumentEditor(props: {
  */
 export function ModelPane(props: {
     liveModel: LiveModelDocument;
+    annotations?: AnnotationWithUIState[];
 }) {
     const liveDoc = () => props.liveModel.liveDoc;
 
@@ -101,11 +101,16 @@ export function ModelPane(props: {
                 </div>
                 <TheorySelectorDialog
                     theoryMeta={stdTheories.getMetadata(liveDoc().doc.theory)}
-                    setTheory={(id) => migrateModelDocument(props.liveModel, id, stdTheories)}
+                    setTheory={(id) =>
+                        migrateModelDocument(props.liveModel, id, stdTheories)
+                    }
                     theories={selectableTheories()}
                 />
             </div>
-            <ModelNotebookEditor liveModel={props.liveModel} />
+            <ModelNotebookEditor
+                liveModel={props.liveModel}
+                annotations={props.annotations}
+            />
         </div>
     );
 }
@@ -114,6 +119,7 @@ export function ModelPane(props: {
  */
 export function ModelNotebookEditor(props: {
     liveModel: LiveModelDocument;
+    annotations?: AnnotationWithUIState[];
 }) {
     const liveDoc = () => props.liveModel.liveDoc;
 
@@ -128,7 +134,9 @@ export function ModelNotebookEditor(props: {
     const auth = firebaseApp && useAuth(getAuth(firebaseApp));
 
     const [isOverlayOpen, setOverlayOpen] = createSignal(
-        liveDoc().doc.notebook.cellOrder.length === 0 && auth != null && auth.data == null,
+        liveDoc().doc.notebook.cellOrder.length === 0 &&
+            auth != null &&
+            auth.data == null
     );
     const toggleOverlay = () => setOverlayOpen(!isOverlayOpen());
 
@@ -146,6 +154,7 @@ export function ModelNotebookEditor(props: {
                 cellConstructors={cellConstructors()}
                 cellLabel={judgmentLabel}
                 duplicateCell={duplicateModelJudgment}
+                annotations={props.annotations}
             />
         </LiveModelContext.Provider>
     );
@@ -158,12 +167,16 @@ export function ModelCellEditor(props: FormalCellEditorProps<ModelJudgment>) {
 
     return (
         <Switch>
-            <Match when={props.content.tag === "object" && liveModel().theory()}>
+            <Match
+                when={props.content.tag === "object" && liveModel().theory()}
+            >
                 {(theory) => (
                     <ObjectCellEditor
                         object={props.content as ObjectDecl}
                         modifyObject={(f) =>
-                            props.changeContent((content) => f(content as ObjectDecl))
+                            props.changeContent((content) =>
+                                f(content as ObjectDecl)
+                            )
                         }
                         isActive={props.isActive}
                         actions={props.actions}
@@ -171,12 +184,16 @@ export function ModelCellEditor(props: FormalCellEditorProps<ModelJudgment>) {
                     />
                 )}
             </Match>
-            <Match when={props.content.tag === "morphism" && liveModel().theory()}>
+            <Match
+                when={props.content.tag === "morphism" && liveModel().theory()}
+            >
                 {(theory) => (
                     <MorphismCellEditor
                         morphism={props.content as MorphismDecl}
                         modifyMorphism={(f) =>
-                            props.changeContent((content) => f(content as MorphismDecl))
+                            props.changeContent((content) =>
+                                f(content as MorphismDecl)
+                            )
                         }
                         isActive={props.isActive}
                         actions={props.actions}
@@ -188,7 +205,9 @@ export function ModelCellEditor(props: FormalCellEditorProps<ModelJudgment>) {
     );
 }
 
-function modelCellConstructor(meta: ModelTypeMeta): CellConstructor<ModelJudgment> {
+function modelCellConstructor(
+    meta: ModelTypeMeta
+): CellConstructor<ModelJudgment> {
     const { name, description, shortcut } = meta;
     return {
         name,

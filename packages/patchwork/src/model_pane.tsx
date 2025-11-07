@@ -1,10 +1,10 @@
-import { createResource, Show } from "solid-js";
+import { createEffect, createResource, Show } from "solid-js";
 
 import { ModelPane } from "../../frontend/src/model/model_editor";
 import { createModelLibraryWithRepo } from "../../frontend/src/model";
 import { stdTheories } from "../../frontend/src/stdlib";
 import { TheoryLibraryContext } from "../../frontend/src/theory";
-import { AnnotationsContext } from "./annotations_solid";
+import { AnnotationsContext, useAnnotationsOfDoc } from "./annotations_solid";
 import { SolidToolProps } from "./tools";
 
 export function ModelPaneComponent(props: SolidToolProps) {
@@ -51,7 +51,10 @@ export function ModelPaneComponent(props: SolidToolProps) {
                                 <TheoryLibraryContext.Provider
                                     value={stdTheories}
                                 >
-                                    <ModelPane liveModel={liveModel()!} />
+                                    <ModelPane
+                                        liveModel={liveModel()!}
+                                        annotations={props.annotations}
+                                    />
                                 </TheoryLibraryContext.Provider>
                             </AnnotationsContext.Provider>
                         );
