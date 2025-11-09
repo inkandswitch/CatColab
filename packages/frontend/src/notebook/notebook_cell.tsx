@@ -7,7 +7,13 @@ import {
 import type { DocHandle, Prop } from "@automerge/automerge-repo";
 import Popover from "@corvu/popover";
 import type { EditorView } from "prosemirror-view";
-import { type JSX, Show, createEffect, createSignal, onCleanup } from "solid-js";
+import {
+    type JSX,
+    Show,
+    createEffect,
+    createSignal,
+    onCleanup,
+} from "solid-js";
 
 import type { Uuid } from "catlog-wasm";
 import {
@@ -26,6 +32,7 @@ import Plus from "lucide-solid/icons/plus";
 import Trash2 from "lucide-solid/icons/trash-2";
 
 import "./notebook_cell.css";
+import type { DiffAnnotationWithUIState } from "@patchwork/sdk/annotations";
 
 /** Props available to all notebook cell editors. */
 export type CellEditorProps = {
@@ -95,7 +102,9 @@ const createCellDragData = (cellId: Uuid, index: number) => ({
 });
 
 /** Check whether the drag data is of notebook cell type. */
-export function isCellDragData(data: Record<string | symbol, unknown>): data is CellDragData {
+export function isCellDragData(
+    data: Record<string | symbol, unknown>
+): data is CellDragData {
     return Boolean(data[cellDragDataKey]);
 }
 
@@ -114,6 +123,7 @@ export function NotebookCell(props: {
     tag?: string;
     currentDropTarget: string | null;
     setCurrentDropTarget: (cellId: string | null) => void;
+    diffAnnotation?: DiffAnnotationWithUIState<unknown, unknown, unknown>;
 }) {
     let rootRef!: HTMLDivElement;
     let handleRef!: HTMLButtonElement;
@@ -121,7 +131,8 @@ export function NotebookCell(props: {
     const [isGutterVisible, setGutterVisible] = createSignal(false);
     const showGutter = () => setGutterVisible(true);
     const hideGutter = () => setGutterVisible(false);
-    const visibility = (isVisible: boolean) => (isVisible ? "visible" : "hidden");
+    const visibility = (isVisible: boolean) =>
+        isVisible ? "visible" : "hidden";
 
     const [isMenuOpen, setMenuOpen] = createSignal(false);
     const openMenu = () => setMenuOpen(true);
@@ -169,7 +180,8 @@ export function NotebookCell(props: {
         const cleanup = combine(
             draggable({
                 element: handleRef,
-                getInitialData: () => createCellDragData(props.cellId, props.index),
+                getInitialData: () =>
+                    createCellDragData(props.cellId, props.index),
             }),
             dropTargetForElements({
                 element: rootRef,
@@ -196,7 +208,8 @@ export function NotebookCell(props: {
                         setDropTarget(false);
                     } else {
                         props.setCurrentDropTarget(props.cellId);
-                        const edge = sourceIndex < targetIndex ? "bottom" : "top";
+                        const edge =
+                            sourceIndex < targetIndex ? "bottom" : "top";
                         setClosestEdge(edge);
                         setDropTarget(true);
                     }
@@ -205,13 +218,23 @@ export function NotebookCell(props: {
                     setDropTarget(false);
                     setClosestEdge(null);
                 },
-            }),
+            })
         );
         onCleanup(cleanup);
     });
 
     return (
-        <div class="cell" onMouseEnter={showGutter} onMouseLeave={hideGutter} ref={rootRef}>
+        <div
+            class="cell"
+            classList={{
+                "cell-added": props.diffAnnotation?.type === "added",
+                "cell-changed": props.diffAnnotation?.type === "changed",
+                "cell-highlighted": props.diffAnnotation?.isSelected,
+            }}
+            onMouseEnter={showGutter}
+            onMouseLeave={hideGutter}
+            ref={rootRef}
+        >
             <div class="cell-gutter">
                 <IconButton
                     onClick={props.actions.createBelow}
@@ -231,7 +254,11 @@ export function NotebookCell(props: {
                     <Popover.Anchor as="span">
                         <IconButton
                             onClick={openMenu}
-                            style={{ visibility: visibility(isGutterVisible() || isMenuOpen()) }}
+                            style={{
+                                visibility: visibility(
+                                    isGutterVisible() || isMenuOpen()
+                                ),
+                            }}
                             tooltip="Drag to move cell or click to open menu"
                             ref={handleRef}
                         >
@@ -240,7 +267,10 @@ export function NotebookCell(props: {
                     </Popover.Anchor>
                     <Popover.Portal>
                         <Popover.Content class="popup">
-                            <Completions completions={completions()} onComplete={closeMenu} />
+                            <Completions
+                                completions={completions()}
+                                onComplete={closeMenu}
+                            />
                         </Popover.Content>
                     </Popover.Portal>
                 </Popover>
@@ -268,7 +298,7 @@ export function RichTextCellEditor(
         cellId: Uuid;
         handle: DocHandle<unknown>;
         path: Prop[];
-    },
+    }
 ) {
     const [editorView, setEditorView] = createSignal<EditorView>();
 
@@ -300,7 +330,7 @@ export function RichTextCellEditor(
 export function StemCellEditor(
     props: CellEditorProps & {
         completions: Completion[];
-    },
+    }
 ) {
     const [text, setText] = createSignal("");
 

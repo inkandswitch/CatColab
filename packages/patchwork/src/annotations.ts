@@ -20,9 +20,7 @@ export class CellPointer<D extends ModelDoc | AnalysisDoc>
     constructor(readonly doc: D, readonly target: Uuid) {}
 
     get value(): any {
-        return Object.values(this.doc.notebook.cellContents).find(
-            (cell) => cell.id === this.target
-        )!;
+        return this.doc.notebook.cellContents[this.target];
     }
     get sortValue(): string | number | (string | number)[] {
         return this.target;
@@ -39,72 +37,51 @@ export const patchesToAnnotation = <D extends ModelDoc | AnalysisDoc>(
 ): DiffAnnotation<D, Uuid, Cell<unknown>>[] => {
     const annotations: DiffAnnotation<D, Uuid, Cell<unknown>>[] = [];
 
-    const newCellIds = new Set<Uuid>();
     const changedCellIds = new Set<Uuid>();
 
     patches.forEach((patch) => {
-        if (patch.path[0] !== "notebook" || patch.path[1] !== "cells") {
+        if (patch.path[0] !== "notebook") {
             return;
         }
 
-        const cellIndex = patch.path[2] as number;
+        // Only track changes to cellContents (actual content modifications/additions/deletions)
+        // Ignore cellOrder changes (reordering)
+        if (patch.path[1] === "cellContents") {
+            const cellId = patch.path[2] as Uuid;
 
-        switch (patch.action) {
-            case "del": {
-                const cellId = docBefore.notebook.cellContents[cellIndex].id;
-                const cellAfter = Object.values(
-                    docAfter.notebook.cellContents
-                ).find((cell: Cell<unknown>) => cell.id === cellId);
+            if (changedCellIds.has(cellId)) {
+                return;
+            }
 
-                if (cellAfter) {
-                    if (changedCellIds.has(cellId)) {
-                        break;
-                    }
+            const cellBefore = docBefore.notebook.cellContents[cellId];
+            const cellAfter = docAfter.notebook.cellContents[cellId];
 
+            if (patch.action === "del") {
+                // Cell was deleted
+                if (cellBefore) {
                     changedCellIds.add(cellId);
-                    annotations.push({
-                        type: "changed",
-                        before: new CellPointer(docBefore, cellId),
-                        after: new CellPointer(docAfter, cellId),
-                    });
-                } else {
                     annotations.push({
                         type: "deleted",
                         pointer: new CellPointer(docBefore, cellId),
                     });
                 }
-                break;
-            }
-
-            case "splice":
-            case "put": {
-                const cellId = docAfter.notebook.cellContents[cellIndex].id;
-                const cellBefore = Object.values(
-                    docBefore.notebook.cellContents
-                ).find((cell: Cell<unknown>) => cell.id === cellId);
-                if (cellBefore) {
-                    if (changedCellIds.has(cellId)) {
-                        break;
-                    }
-
+            } else if (patch.action === "put" || patch.action === "splice") {
+                if (cellBefore && cellAfter) {
+                    // Cell content was modified
                     changedCellIds.add(cellId);
                     annotations.push({
                         type: "changed",
                         before: new CellPointer(docBefore, cellId),
                         after: new CellPointer(docAfter, cellId),
                     });
-                } else {
-                    if (newCellIds.has(cellId)) {
-                        break;
-                    }
-
-                    newCellIds.add(cellId);
+                } else if (cellAfter && !cellBefore) {
+                    // Cell was added
+                    changedCellIds.add(cellId);
                     annotations.push({
                         type: "added",
                         pointer: new CellPointer(docAfter, cellId),
                     });
                 }
-                break;
             }
         }
     });
@@ -156,7 +133,7 @@ export function CellAnnotationsViewWrapper({
                 solidDisposeRef.current = null;
             }
         };
-    }, [annotations, repo]);
+    }, [annotations, repo, docUrl, CellAnnotationsView]);
 
     // We use React.createElement here to avoid bringing in React's JSX transform.
     // We had some trouble with combining both solid and react JSX in one build.

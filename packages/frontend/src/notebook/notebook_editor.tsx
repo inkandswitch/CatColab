@@ -17,7 +17,11 @@ import invariant from "tiny-invariant";
 
 import type { Cell, Notebook } from "catlog-wasm";
 import { type Completion, IconButton } from "../components";
-import { type KbdKey, type ModifierKey, keyEventHasModifier } from "../util/keyboard";
+import {
+    type KbdKey,
+    type ModifierKey,
+    keyEventHasModifier,
+} from "../util/keyboard";
 import {
     type CellActions,
     type FormalCellEditorProps,
@@ -26,9 +30,22 @@ import {
     StemCellEditor,
     isCellDragData,
 } from "./notebook_cell";
-import { type FormalCell, NotebookUtils, newRichTextCell, newStemCell } from "./types";
+import {
+    type FormalCell,
+    NotebookUtils,
+    newRichTextCell,
+    newStemCell,
+} from "./types";
+import { useAnnotationsOfDoc } from "../../../patchwork/src/annotations_solid";
 
 import "./notebook_editor.css";
+import {
+    AnnotationWithUIState,
+    getDiffAnnotationAtPointer,
+} from "@patchwork/sdk/annotations";
+import { CellPointer } from "../../../patchwork/src/annotations";
+import type { AnalysisDoc } from "../../../patchwork/src/analysis_datatype";
+import type { ModelDoc } from "../../../patchwork/src/model_datatype";
 
 /** Constructor for a cell in a notebook.
 
@@ -78,9 +95,13 @@ export function NotebookEditor<T>(props: {
 
     // FIXME: Remove this option once we fix focus management.
     noShortcuts?: boolean;
+
+    annotations?: AnnotationWithUIState[];
 }) {
     const [activeCell, setActiveCell] = createSignal<number | null>(null);
-    const [currentDropTarget, setCurrentDropTarget] = createSignal<string | null>(null);
+    const [currentDropTarget, setCurrentDropTarget] = createSignal<
+        string | null
+    >(null);
 
     // Set up commands and their keyboard shortcuts.
     const addAfterActiveCell = (cell: Cell<T>) => {
@@ -95,7 +116,9 @@ export function NotebookEditor<T>(props: {
     const addOrReplaceActiveCell = (cell: Cell<T>) => {
         const cellIndex = activeCell() ?? -1;
         const existingCell =
-            cellIndex >= 0 ? NotebookUtils.tryGetCellByIndex(props.notebook, cellIndex) : null;
+            cellIndex >= 0
+                ? NotebookUtils.tryGetCellByIndex(props.notebook, cellIndex)
+                : null;
         if (existingCell?.tag === "stem") {
             replaceCellWith(cellIndex, cell);
         } else {
@@ -161,7 +184,10 @@ export function NotebookEditor<T>(props: {
         }
         if (keyEventHasModifier(evt, cellShortcutModifier)) {
             for (const command of insertCommands()) {
-                if (command.shortcut && evt.key.toUpperCase() === command.shortcut[0]) {
+                if (
+                    command.shortcut &&
+                    evt.key.toUpperCase() === command.shortcut[0]
+                ) {
                     command.onComplete?.();
                     return evt.preventDefault();
                 }
@@ -181,26 +207,42 @@ export function NotebookEditor<T>(props: {
             canMonitor({ source }) {
                 return (
                     isCellDragData(source.data) &&
-                    props.notebook.cellOrder.some((cellId) => cellId === source.data.cellId)
+                    props.notebook.cellOrder.some(
+                        (cellId) => cellId === source.data.cellId
+                    )
                 );
             },
             onDrop({ location, source }) {
                 const target = location.current.dropTargets[0];
-                if (!(target && isCellDragData(source.data) && isCellDragData(target.data))) {
+                if (
+                    !(
+                        target &&
+                        isCellDragData(source.data) &&
+                        isCellDragData(target.data)
+                    )
+                ) {
                     setCurrentDropTarget(null);
                     return;
                 }
-                const [sourceId, targetId] = [source.data.cellId, target.data.cellId];
+                const [sourceId, targetId] = [
+                    source.data.cellId,
+                    target.data.cellId,
+                ];
                 const nb = props.notebook;
-                const sourceIndex = nb.cellOrder.findIndex((cellId) => cellId === sourceId);
-                const targetIndex = nb.cellOrder.findIndex((cellId) => cellId === targetId);
+                const sourceIndex = nb.cellOrder.findIndex(
+                    (cellId) => cellId === sourceId
+                );
+                const targetIndex = nb.cellOrder.findIndex(
+                    (cellId) => cellId === targetId
+                );
                 if (sourceIndex < 0 || targetIndex < 0) {
                     return;
                 }
                 const finalIndex = getReorderDestinationIndex({
                     startIndex: sourceIndex,
                     indexOfTarget: targetIndex,
-                    closestEdgeOfTarget: sourceIndex < targetIndex ? "bottom" : "top",
+                    closestEdgeOfTarget:
+                        sourceIndex < targetIndex ? "bottom" : "top",
                     axis: "vertical",
                 });
                 props.changeNotebook((nb) => {
@@ -219,13 +261,26 @@ export function NotebookEditor<T>(props: {
                     <IconButton onClick={() => appendCell(newStemCell())}>
                         <ListPlus />
                     </IconButton>
-                    <span>Click button or press Shift-Enter to create a cell</span>
+                    <span>
+                        Click button or press Shift-Enter to create a cell
+                    </span>
                 </div>
             </Show>
             <ul class="notebook-cells">
                 <For each={props.notebook.cellOrder}>
                     {(cellId, i) => {
+                        const cellPointer = new CellPointer(
+                            props.handle.doc() as AnalysisDoc | ModelDoc,
+                            cellId
+                        );
+
                         const isActive = () => activeCell() === i();
+
+                        const diffAnnotation = () =>
+                            getDiffAnnotationAtPointer(
+                                cellPointer,
+                                props.annotations ?? []
+                            );
 
                         const cellActions: CellActions = {
                             activateAbove() {
@@ -234,7 +289,10 @@ export function NotebookEditor<T>(props: {
                                 }
                             },
                             activateBelow() {
-                                if (i() < NotebookUtils.numCells(props.notebook) - 1) {
+                                if (
+                                    i() <
+                                    NotebookUtils.numCells(props.notebook) - 1
+                                ) {
                                     setActiveCell(i() + 1);
                                 }
                             },
@@ -282,7 +340,10 @@ export function NotebookEditor<T>(props: {
                         };
 
                         const cell = props.notebook.cellContents[cellId];
-                        invariant(cell, `Failed to find contents for cell '${cellId}'`);
+                        invariant(
+                            cell,
+                            `Failed to find contents for cell '${cellId}'`
+                        );
 
                         if (cell.tag !== "rich-text") {
                             cellActions.duplicate = () => {
@@ -291,7 +352,7 @@ export function NotebookEditor<T>(props: {
                                     NotebookUtils.duplicateCellAtIndex(
                                         nb,
                                         index,
-                                        props.duplicateCell,
+                                        props.duplicateCell
                                     );
                                 });
                                 setActiveCell(index + 1);
@@ -311,27 +372,35 @@ export function NotebookEditor<T>(props: {
                                     }
                                     currentDropTarget={currentDropTarget()}
                                     setCurrentDropTarget={setCurrentDropTarget}
+                                    diffAnnotation={diffAnnotation()}
                                 >
                                     <Switch>
                                         <Match when={cell.tag === "rich-text"}>
                                             <RichTextCellEditor
                                                 cellId={cell.id}
                                                 handle={props.handle}
-                                                path={[...props.path, "cellContents", cell.id]}
+                                                path={[
+                                                    ...props.path,
+                                                    "cellContents",
+                                                    cell.id,
+                                                ]}
                                                 isActive={isActive()}
                                                 actions={cellActions}
                                             />
                                         </Match>
                                         <Match when={cell.tag === "formal"}>
                                             <props.formalCellEditor
-                                                content={(cell as FormalCell<T>).content}
+                                                content={
+                                                    (cell as FormalCell<T>)
+                                                        .content
+                                                }
                                                 changeContent={(f) =>
                                                     props.changeNotebook((nb) =>
                                                         NotebookUtils.mutateCellContentById(
                                                             nb,
                                                             cell.id,
-                                                            f,
-                                                        ),
+                                                            f
+                                                        )
                                                     )
                                                 }
                                                 isActive={isActive()}
@@ -340,7 +409,9 @@ export function NotebookEditor<T>(props: {
                                         </Match>
                                         <Match when={cell.tag === "stem"}>
                                             <StemCellEditor
-                                                completions={replaceCommands(i())}
+                                                completions={replaceCommands(
+                                                    i()
+                                                )}
                                                 isActive={isActive()}
                                                 actions={cellActions}
                                             />
@@ -354,7 +425,8 @@ export function NotebookEditor<T>(props: {
             </ul>
             <Show
                 when={props.notebook.cellOrder.some(
-                    (cellId) => props.notebook.cellContents[cellId]?.tag !== "stem",
+                    (cellId) =>
+                        props.notebook.cellContents[cellId]?.tag !== "stem"
                 )}
             >
                 <div class="placeholder">
@@ -376,4 +448,6 @@ The choice is platform-specific: On Mac, the Alt/Option key remaps keys, so we
 use Control, whereas on other platforms Control tends to be already bound in
 other shortcuts, so we Alt.
  */
-const cellShortcutModifier: ModifierKey = navigator.userAgent.includes("Mac") ? "Control" : "Alt";
+const cellShortcutModifier: ModifierKey = navigator.userAgent.includes("Mac")
+    ? "Control"
+    : "Alt";

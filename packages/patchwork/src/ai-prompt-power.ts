@@ -2,8 +2,6 @@ import { DocHandle } from "@automerge/automerge-repo";
 import { AIEditPrompt } from "@patchwork/sdk";
 import { v7 } from "uuid";
 
-console.log("this is the full updated ai prompt 12:25");
-
 // Type definitions based on catlog-wasm structure
 interface ModelDocumentContent {
     name: string;
@@ -131,7 +129,9 @@ function deepMerge(target: any, source: any) {
     }
 }
 
-function createNameToIdMap(cellContents: Record<string, NotebookCell>): Map<string, string> {
+function createNameToIdMap(
+    cellContents: Record<string, NotebookCell>
+): Map<string, string> {
     const map = new Map<string, string>();
     for (const cell of Object.values(cellContents)) {
         if (cell.tag === "formal") {
@@ -145,24 +145,26 @@ function createNameToIdMap(cellContents: Record<string, NotebookCell>): Map<stri
     return map;
 }
 
-export const stockFlowAIPrompt: AIEditPrompt<ModelDocumentContent> = {
-    id: "stock-flow-ai-prompt",
-    name: "Stock Flow Diagram Editor",
+export const powerSystemAIPrompt: AIEditPrompt<ModelDocumentContent> = {
+    id: "power-system-ai-prompt",
+    name: "Power System Diagram Editor",
     type: "patchwork:ai-prompt",
     datatypeId: "catcolab-model",
     module: {
         docToText: (doc: ModelDocumentContent) => JSON.stringify(doc, null, 2),
         textToDoc: (text: string) => JSON.parse(text),
-        prompt: `You are an AI assistant helping to edit stock flow diagrams in CatColab.
+        prompt: `You are an AI assistant helping to edit power system diagrams in CatColab.
 
-# Stock Flow Diagram Concepts
+# Power System Concepts
 
-**Stock Flow Diagrams** model systems with:
-- **Stocks**: Accumulating quantities (populations, inventory, etc.) - represented as rectangles
-- **Flows**: Rates of change between stocks (birth rates, consumption, etc.) - represented as arrows
-- **Links**: Dependencies where a stock influences a flow rate - represented as curved lines
+**Power Systems** model electrical grids with:
+- **Buses**: Network nodes where power is generated, consumed, or transferred - represented as points/circles
+- **Generators**: Power sources (coal, nuclear, gas, wind, solar, hydro) connected to buses - represented as circles with 'G'
+- **Loads**: Power consumers (cities, industrial facilities) connected to buses - represented as arrows pointing down
+- **Transmission Lines**: Connections between buses carrying electrical power - represented as lines between buses
+- **Transformers**: Voltage-changing connections between buses at different voltage levels - represented as special connection symbols
 
-Common examples: epidemiological models (S-E-I-R-V), supply chains, economic models, population dynamics.
+Common examples: National grids (UK, US), regional transmission networks, renewable energy integration, smart grids.
 
 # CatColab Schema Structure
 
@@ -171,7 +173,7 @@ Documents follow this JSON structure:
 json:
 {
   "name": "Model Name",
-  "theory": "primitive-stock-flow",
+  "theory": "power-system-theory",
   "type": "model",
   "notebook": {
     "cellContents": {
@@ -184,68 +186,104 @@ json:
         "tag": "formal",
         "id": "cell-uuid-2",
         "content": {
-          "tag": "object",  // Declares a stock
+          "tag": "object",  // Declares a bus
           "id": "uuid-here",
-          "name": "Population",
-          "obType": {"tag": "Basic", "content": "Object"}
+          "name": "London_400kV",
+          "obType": {"tag": "Basic", "content": "Bus"}
         }
       },
       "cell-uuid-3": {
         "tag": "formal",
         "id": "cell-uuid-3",
         "content": {
-          "tag": "morphism",  // Declares a flow
+          "tag": "morphism",  // Declares a transmission line
           "id": "uuid-here",
-          "name": "birth_rate",
-          "dom": {"tag": "Basic", "content": "source-population-id"},
-          "cod": {"tag": "Basic", "content": "target-population-id"},
-          "morType": {"tag": "Hom", "content": {"tag": "Basic", "content": "Object"}}
+          "name": "London_Birmingham_Line",
+          "dom": {"tag": "Basic", "content": "london-bus-id"},
+          "cod": {"tag": "Basic", "content": "birmingham-bus-id"},
+          "morType": {"tag": "Hom", "content": {"tag": "Basic", "content": "Bus"}}
+        }
+      },
+      "cell-uuid-4": {
+        "tag": "formal",
+        "id": "cell-uuid-4",
+        "content": {
+          "tag": "morphism",  // Declares a generator
+          "id": "uuid-here",
+          "name": "Hinkley_Nuclear",
+          "dom": null,
+          "cod": {"tag": "Basic", "content": "somerset-bus-id"},
+          "morType": {"tag": "Basic", "content": "Generator"}
+        }
+      },
+      "cell-uuid-5": {
+        "tag": "formal",
+        "id": "cell-uuid-5",
+        "content": {
+          "tag": "morphism",  // Declares a load
+          "id": "uuid-here",
+          "name": "London_Load",
+          "dom": {"tag": "Basic", "content": "london-bus-id"},
+          "cod": null,
+          "morType": {"tag": "Basic", "content": "Load"}
         }
       }
     },
-    "cellOrder": ["cell-uuid-1", "cell-uuid-2", "cell-uuid-3"]
+    "cellOrder": ["cell-uuid-1", "cell-uuid-2", "cell-uuid-3", "cell-uuid-4", "cell-uuid-5"]
   }
 }
 
 
 **Key concepts**:
-- **dom** (domain) = source stock of a flow
-- **cod** (codomain) = target stock of a flow
-- **Objects** represent stocks (accumulating quantities)
-- **Morphisms** represent flows (rates of change) or links (dependencies)
+- **Buses** are objects representing network nodes
+- **Transmission Lines** are morphisms with both dom (source bus) and cod (target bus)
+- **Generators** are morphisms with cod (bus they connect to) and null dom
+- **Loads** are morphisms with dom (bus they connect to) and null cod
+- **dom** (domain) = source/input bus
+- **cod** (codomain) = target/output bus
 
-# Example: SEIRV Epidemiological Model
+# Example: Simplified UK Power Grid
 
-This model has 5 stocks (populations) and flows between them:
+This model has buses at major cities and generation sites, with transmission lines connecting them:
 
-**Stocks**: Susceptible → Exposed → Infectious → Recovered, plus Vaccinated
-**Flows**: exposure, vaccination, infection, recovery
-**Link**: Infectious population influences exposure rate
+**Buses**: London, Birmingham, Manchester, Scotland, Somerset (for Hinkley Point)
+**Generators**: Hinkley Point Nuclear, North Sea Wind, Scottish Hydro
+**Loads**: London demand, Birmingham demand, Manchester demand
+**Transmission Lines**: Connecting major cities and generation to load centers
 
 json:
-// Stock: Susceptible population
+// Bus: London 400kV substation
 {
   "tag": "object",
-  "name": "Susceptible",
-  "obType": {"tag": "Basic", "content": "Object"}
+  "name": "London_400kV",
+  "obType": {"tag": "Basic", "content": "Bus"}
 }
 
-// Flow: People move from Susceptible to Exposed
+// Generator: Hinkley Point Nuclear Plant (3.2 GW)
 {
   "tag": "morphism",
-  "name": "exposure",
-  "dom": {"tag": "Basic", "content": "susceptible-id"},
-  "cod": {"tag": "Basic", "content": "exposed-id"},
-  "morType": {"tag": "Hom", "content": {"tag": "Basic", "content": "Object"}}
+  "name": "Hinkley_Nuclear",
+  "dom": null,
+  "cod": {"tag": "Basic", "content": "somerset-bus-id"},
+  "morType": {"tag": "Basic", "content": "Generator"}
 }
 
-// Link: Infectious population affects exposure rate
+// Load: London electricity demand
 {
   "tag": "morphism",
-  "name": "",
-  "dom": {"tag": "Basic", "content": "infectious-id"},
-  "cod": {"tag": "Tabulated", "content": "exposure-flow-id"},
-  "morType": {"tag": "Basic", "content": "Link"}
+  "name": "London_Load",
+  "dom": {"tag": "Basic", "content": "london-bus-id"},
+  "cod": null,
+  "morType": {"tag": "Basic", "content": "Load"}
+}
+
+// Transmission Line: Somerset to London (carrying nuclear power)
+{
+  "tag": "morphism",
+  "name": "Somerset_London_Line",
+  "dom": {"tag": "Basic", "content": "somerset-bus-id"},
+  "cod": {"tag": "Basic", "content": "london-bus-id"},
+  "morType": {"tag": "Hom", "content": {"tag": "Basic", "content": "Bus"}}
 }
 
 
@@ -253,31 +291,40 @@ json:
 
 When the user requests changes, respond with a concise explanation followed by your edits in this format:
 
-I'll add a Dead population and mortality flow from Infectious to Dead.
+I'll add a Manchester bus, wind generator, and transmission line to London.
 
 <edit>
 [
   {
     "type": "add-cell",
     "cellType": "rich-text",
-    "content": "New explanation text",
-    "position": {"index": 10}
+    "content": "Northern England region",
+    "position": {"after": "_start"}
   },
   {
     "type": "add-cell",
     "cellType": "object",
-    "name": "Dead",
-    "obType": {"tag": "Basic", "content": "Object"},
-    "position": {"index": 11}
+    "name": "Manchester_275kV",
+    "obType": {"tag": "Basic", "content": "Bus"},
+    "position": {"after": "some-cell-id"}
   },
   {
     "type": "add-cell",
     "cellType": "morphism",
-    "name": "mortality",
-    "dom": "infectious-population-name",
-    "cod": "dead-population-name",
-    "morType": {"tag": "Hom", "content": {"tag": "Basic", "content": "Object"}},
-    "position": {"after": "some-cell-id"}
+    "name": "North_Sea_Wind",
+    "dom": null,
+    "cod": "Manchester_275kV",
+    "morType": {"tag": "Basic", "content": "Generator"},
+    "position": {"after": "Manchester_275kV"}
+  },
+  {
+    "type": "add-cell",
+    "cellType": "morphism",
+    "name": "Manchester_London_Line",
+    "dom": "Manchester_275kV",
+    "cod": "London_400kV",
+    "morType": {"tag": "Hom", "content": {"tag": "Basic", "content": "Bus"}},
+    "position": {"after": "North_Sea_Wind"}
   },
   {
     "type": "edit-cell",
@@ -295,13 +342,25 @@ I'll add a Dead population and mortality flow from Infectious to Dead.
 
 **Edit Guidelines**:
 - **IMPORTANT**: All object and morphism names must be unique across the entire document
-- For **add-cell** with morphisms, reference objects or morphisms by name (I'll resolve to IDs)
+- For **add-cell** with morphisms, reference buses by name (I'll resolve to IDs)
 - For **edit-cell**, provide partial updates that will be merged into the existing cell
 - **Rich text** cells provide context and explanations
-- **Object** cells create new stocks
-- **Morphism** cells create flows between stocks or links from stocks to flows
-- Always maintain logical flow: stocks should connect via meaningful processes
-- Use domain knowledge for realistic models (epidemiology, economics, etc.)
+- **Object** cells create buses (network nodes)
+- **Morphism** cells create:
+  - **Generators**: dom=null, cod=bus-name, morType={"tag": "Basic", "content": "Generator"}
+  - **Loads**: dom=bus-name, cod=null, morType={"tag": "Basic", "content": "Load"}
+  - **Transmission Lines**: dom=bus-name, cod=bus-name, morType={"tag": "Hom", "content": {"tag": "Basic", "content": "Bus"}}
+- Always maintain logical topology: generators connect to buses, buses connect via lines, loads consume from buses
+- Use realistic power system elements (nuclear, wind, solar, coal, gas for generation; cities for loads)
+
+**Component Types**:
+- **Bus**: Network node, typically named with location and voltage (e.g., "London_400kV", "Birmingham_275kV")
+- **Generator**: Power source with types like Nuclear, Wind, Solar, Coal, Gas, Hydro (e.g., "Hinkley_Nuclear_3200MW")
+  - morType: {"tag": "Basic", "content": "Generator"}
+- **Load**: Power consumer, typically cities or industrial sites (e.g., "London_Load_8000MW")
+  - morType: {"tag": "Basic", "content": "Load"}
+- **TransmissionLine**: Connection between buses (e.g., "London_Birmingham_400kV_Line")
+  - morType: {"tag": "Hom", "content": {"tag": "Basic", "content": "Bus"}}
 
 **Positioning Cells (REQUIRED)**:
 - The "position" field is REQUIRED for all "add-cell" and "add-cells" operations
@@ -322,32 +381,34 @@ json:
 {
   "type": "add-cells",
   "cells": [
-    {"cellType": "rich-text", "content": "First cell"},
-    {"cellType": "object", "name": "MyStock", "obType": {"tag": "Basic", "content": "Object"}},
-    {"cellType": "rich-text", "content": "Third cell"}
+    {"cellType": "rich-text", "content": "Scotland region"},
+    {"cellType": "object", "name": "Scotland_400kV", "obType": {"tag": "Basic", "content": "Bus"}},
+    {"cellType": "morphism", "name": "Scottish_Hydro", "dom": null, "cod": "Scotland_400kV", "morType": {"tag": "Basic", "content": "Generator"}},
+    {"cellType": "rich-text", "content": "Hydro provides 1.5 GW capacity"}
   ],
   "position": {"after": "some-cell-id"}
 }
 
-- This inserts all three cells consecutively after the specified cell
-- You can use the same position options: "after" or "before"
+- This inserts all four cells consecutively after the specified cell
 
-**Referencing Objects and Morphisms**:
-- Use names to reference both objects and morphisms in dom/cod fields
+**Referencing Buses and Components**:
+- Use names to reference buses and other components in dom/cod fields
 - When inserting after a cell you created earlier in the same edit, use the cell's name
-- For objects, use the object name (e.g., "MyStock")
-- For morphisms, use the morphism name (e.g., "birth_rate")
+- For buses, use the bus name (e.g., "London_400kV")
+- For morphisms, you generally reference buses in dom/cod, not other morphisms
 - For rich-text cells, you cannot reference them by name (they don't have names)
 - **Remember**: All names must be unique across the entire document!
 
 **Edit Examples**:
 - Update rich-text content: {"type": "edit-cell", "id": "...", "updates": {"content": "New text"}}
-- Update object name: {"type": "edit-cell", "id": "...", "updates": {"content": {"name": "New Name"}}}
-- Update morphism domain: {"type": "edit-cell", "id": "...", "updates": {"content": {"dom": {"tag": "Basic", "content": "new-id"}}}}
+- Update bus name: {"type": "edit-cell", "id": "...", "updates": {"content": {"name": "New_Name"}}}
+- Update transmission line: {"type": "edit-cell", "id": "...", "updates": {"content": {"dom": {"tag": "Basic", "content": "new-bus-id"}}}}
 - Insert cell at beginning: {"type": "add-cell", "cellType": "rich-text", "content": "Text", "position": {"after": "_start"}}
-- Insert after specific existing cell: {"type": "add-cell", "cellType": "object", "name": "Stock", "obType": {...}, "position": {"after": "cell-123"}}
-- Insert after a new object you created: {"type": "add-cell", "cellType": "rich-text", "content": "Explanation", "position": {"after": "MyNewStock"}}
-- Add multiple cells after a cell: {"type": "add-cells", "cells": [...], "position": {"after": "cell-456"}}
+- Add a bus: {"type": "add-cell", "cellType": "object", "name": "Edinburgh_275kV", "obType": {"tag": "Basic", "content": "Bus"}, "position": {"after": "cell-123"}}
+- Add a generator: {"type": "add-cell", "cellType": "morphism", "name": "Solar_Farm_500MW", "dom": null, "cod": "Edinburgh_275kV", "morType": {"tag": "Basic", "content": "Generator"}, "position": {"after": "Edinburgh_275kV"}}
+- Add a load: {"type": "add-cell", "cellType": "morphism", "name": "Edinburgh_Load", "dom": "Edinburgh_275kV", "cod": null, "morType": {"tag": "Basic", "content": "Load"}, "position": {"after": "Solar_Farm_500MW"}}
+- Add a transmission line: {"type": "add-cell", "cellType": "morphism", "name": "Edinburgh_London_Line", "dom": "Edinburgh_275kV", "cod": "London_400kV", "morType": {"tag": "Hom", "content": {"tag": "Basic", "content": "Bus"}}, "position": {"after": "Edinburgh_Load"}}
+- Add multiple components: {"type": "add-cells", "cells": [...], "position": {"after": "cell-456"}}
 
 You MUST provide a brief explanation followed by <edit> tags with valid JSON!`,
 
@@ -355,7 +416,7 @@ You MUST provide a brief explanation followed by <edit> tags with valid JSON!`,
             handle: DocHandle<ModelDocumentContent>,
             operations: EditOperation[]
         ) => {
-            console.log("🔧 Starting edit operation...");
+            console.log("🔧 Starting power system edit operation...");
             console.log("📋 Received operations:", operations);
             console.log(`📋 Applying ${operations.length} operations`);
 
@@ -402,7 +463,7 @@ You MUST provide a brief explanation followed by <edit> tags with valid JSON!`,
                         `❌ ${context} could not resolve "${name}" - no object or morphism with this name exists`
                     );
                     throw new Error(
-                        `Could not resolve name "${name}" in ${context}. Make sure the object or morphism is defined before referencing it.`
+                        `Could not resolve name "${name}" in ${context}. Make sure the bus or component is defined before referencing it.`
                     );
                 };
 
@@ -432,7 +493,7 @@ You MUST provide a brief explanation followed by <edit> tags with valid JSON!`,
                             const newObjectId = generateUUID();
                             validateAndLogId(newObjectId, "add-cell object ID");
                             console.log(
-                                `📦 Preparing object: "${op.name}" with ID: ${newObjectId}`
+                                `🔌 Preparing bus: "${op.name}" with ID: ${newObjectId}`
                             );
                             newCell = {
                                 tag: "formal",
@@ -452,7 +513,7 @@ You MUST provide a brief explanation followed by <edit> tags with valid JSON!`,
                             };
                             // Update the name-to-id mapping immediately
                             console.log(
-                                `🗺️ Mapping object name "${op.name}" -> object ID "${newObjectId}"`
+                                `🗺️ Mapping bus name "${op.name}" -> bus ID "${newObjectId}"`
                             );
                             nameToId.set(op.name, newObjectId);
                             // Track the cell name for later referencing
@@ -467,24 +528,32 @@ You MUST provide a brief explanation followed by <edit> tags with valid JSON!`,
                                 "add-cell morphism ID"
                             );
 
-                            // Resolve dom and cod references
-                            const domId = resolveNameToId(
-                                op.dom,
-                                "add-cell morphism domain"
-                            );
-                            const codId = resolveNameToId(
-                                op.cod,
-                                "add-cell morphism codomain"
-                            );
+                            // Resolve dom and cod references (may be null for generators/loads)
+                            let domId: string | null = null;
+                            let codId: string | null = null;
+
+                            if (op.dom) {
+                                domId = resolveNameToId(
+                                    op.dom,
+                                    "add-cell morphism domain"
+                                );
+                                validateAndLogId(domId, "morphism domain ID");
+                            }
+
+                            if (op.cod) {
+                                codId = resolveNameToId(
+                                    op.cod,
+                                    "add-cell morphism codomain"
+                                );
+                                validateAndLogId(codId, "morphism codomain ID");
+                            }
 
                             console.log(
-                                `🔗 Resolving morphism domains: "${op.dom}" -> "${domId}", "${op.cod}" -> "${codId}"`
-                            );
-                            validateAndLogId(domId, "morphism domain ID");
-                            validateAndLogId(codId, "morphism codomain ID");
-
-                            console.log(
-                                `🔗 Preparing morphism: "${op.name}" from "${op.dom}" (${domId}) to "${op.cod}" (${codId})`
+                                `⚡ Preparing power component: "${
+                                    op.name
+                                }" from ${op.dom || "null"} to ${
+                                    op.cod || "null"
+                                }`
                             );
 
                             newCell = {
@@ -500,20 +569,24 @@ You MUST provide a brief explanation followed by <edit> tags with valid JSON!`,
                                         "morphism content ID"
                                     ),
                                     name: op.name,
-                                    dom: {
-                                        tag: "Basic",
-                                        content: validateAndLogId(
-                                            domId,
-                                            "morphism dom content"
-                                        ),
-                                    },
-                                    cod: {
-                                        tag: "Basic",
-                                        content: validateAndLogId(
-                                            codId,
-                                            "morphism cod content"
-                                        ),
-                                    },
+                                    dom: domId
+                                        ? {
+                                              tag: "Basic",
+                                              content: validateAndLogId(
+                                                  domId,
+                                                  "morphism dom content"
+                                              ),
+                                          }
+                                        : null,
+                                    cod: codId
+                                        ? {
+                                              tag: "Basic",
+                                              content: validateAndLogId(
+                                                  codId,
+                                                  "morphism cod content"
+                                              ),
+                                          }
+                                        : null,
                                     morType: op.morType,
                                 },
                             };
@@ -572,7 +645,7 @@ You MUST provide a brief explanation followed by <edit> tags with valid JSON!`,
                                     "add-cells object ID"
                                 );
                                 console.log(
-                                    `📦 Preparing add-cells object: "${cellDef.name}" with ID: ${newObjectId}`
+                                    `🔌 Preparing add-cells bus: "${cellDef.name}" with ID: ${newObjectId}`
                                 );
                                 newCell = {
                                     tag: "formal",
@@ -592,7 +665,7 @@ You MUST provide a brief explanation followed by <edit> tags with valid JSON!`,
                                 };
                                 // Update the name-to-id mapping immediately
                                 console.log(
-                                    `🗺️ Mapping add-cells object name "${cellDef.name}" -> object ID "${newObjectId}"`
+                                    `🗺️ Mapping add-cells bus name "${cellDef.name}" -> bus ID "${newObjectId}"`
                                 );
                                 nameToId.set(cellDef.name, newObjectId);
                                 // Track the cell name for later referencing
@@ -607,29 +680,34 @@ You MUST provide a brief explanation followed by <edit> tags with valid JSON!`,
                                     "add-cells morphism ID"
                                 );
 
-                                // Resolve dom and cod references
-                                const domId = resolveNameToId(
-                                    cellDef.dom,
-                                    "add-cells morphism domain"
-                                );
-                                const codId = resolveNameToId(
-                                    cellDef.cod,
-                                    "add-cells morphism codomain"
-                                );
+                                // Resolve dom and cod references (may be null for generators/loads)
+                                let domId: string | null = null;
+                                let codId: string | null = null;
+
+                                if (cellDef.dom) {
+                                    domId = resolveNameToId(
+                                        cellDef.dom,
+                                        "add-cells morphism domain"
+                                    );
+                                    validateAndLogId(
+                                        domId,
+                                        "add-cells morphism domain ID"
+                                    );
+                                }
+
+                                if (cellDef.cod) {
+                                    codId = resolveNameToId(
+                                        cellDef.cod,
+                                        "add-cells morphism codomain"
+                                    );
+                                    validateAndLogId(
+                                        codId,
+                                        "add-cells morphism codomain ID"
+                                    );
+                                }
 
                                 console.log(
-                                    `🔗 Resolving add-cells morphism domains: "${cellDef.dom}" -> "${domId}", "${cellDef.cod}" -> "${codId}"`
-                                );
-                                validateAndLogId(
-                                    domId,
-                                    "add-cells morphism domain ID"
-                                );
-                                validateAndLogId(
-                                    codId,
-                                    "add-cells morphism codomain ID"
-                                );
-                                console.log(
-                                    `🔗 Preparing add-cells morphism: "${cellDef.name}"`
+                                    `⚡ Preparing add-cells power component: "${cellDef.name}"`
                                 );
 
                                 newCell = {
@@ -645,20 +723,24 @@ You MUST provide a brief explanation followed by <edit> tags with valid JSON!`,
                                             "add-cells morphism content ID"
                                         ),
                                         name: cellDef.name,
-                                        dom: {
-                                            tag: "Basic",
-                                            content: validateAndLogId(
-                                                domId,
-                                                "add-cells morphism dom content"
-                                            ),
-                                        },
-                                        cod: {
-                                            tag: "Basic",
-                                            content: validateAndLogId(
-                                                codId,
-                                                "add-cells morphism cod content"
-                                            ),
-                                        },
+                                        dom: domId
+                                            ? {
+                                                  tag: "Basic",
+                                                  content: validateAndLogId(
+                                                      domId,
+                                                      "add-cells morphism dom content"
+                                                  ),
+                                              }
+                                            : null,
+                                        cod: codId
+                                            ? {
+                                                  tag: "Basic",
+                                                  content: validateAndLogId(
+                                                      codId,
+                                                      "add-cells morphism cod content"
+                                                  ),
+                                              }
+                                            : null,
                                         morType: cellDef.morType,
                                     },
                                 };
@@ -710,11 +792,17 @@ You MUST provide a brief explanation followed by <edit> tags with valid JSON!`,
                         const cellId = doc.notebook.cellOrder[i];
                         const cell = doc.notebook.cellContents[cellId];
                         if (!cell) continue;
-                        
-                        if (cell.tag === "formal" && cell.content.tag === "object") {
+
+                        if (
+                            cell.tag === "formal" &&
+                            cell.content.tag === "object"
+                        ) {
                             if (cell.content.name === idOrName) return i;
                         }
-                        if (cell.tag === "formal" && cell.content.tag === "morphism") {
+                        if (
+                            cell.tag === "formal" &&
+                            cell.content.tag === "morphism"
+                        ) {
                             if (cell.content.name === idOrName) return i;
                         }
                     }
@@ -737,10 +825,10 @@ You MUST provide a brief explanation followed by <edit> tags with valid JSON!`,
                     for (const cell of cells) {
                         doc.notebook.cellContents[cell.id] = cell;
                     }
-                    
+
                     // Get cell IDs to insert
-                    const cellIds = cells.map(c => c.id);
-                    
+                    const cellIds = cells.map((c) => c.id);
+
                     if ((op as any).position?.after) {
                         // Insert after specific cell ID/name
                         const afterIndex = findCellIndex(
@@ -777,7 +865,11 @@ You MUST provide a brief explanation followed by <edit> tags with valid JSON!`,
                             (op as any).position.before
                         );
                         if (beforeIndex >= 0) {
-                            doc.notebook.cellOrder.splice(beforeIndex, 0, ...cellIds);
+                            doc.notebook.cellOrder.splice(
+                                beforeIndex,
+                                0,
+                                ...cellIds
+                            );
                             console.log(
                                 `📍 Inserted ${cells.length} cell(s) before: ${
                                     (op as any).position.before
@@ -836,7 +928,8 @@ You MUST provide a brief explanation followed by <edit> tags with valid JSON!`,
                                 `🔍 Looking for cell to delete with ID: "${op.id}"`
                             );
                             validateAndLogId(op.id, "delete-cell operation ID");
-                            const cellToDelete = doc.notebook.cellContents[op.id];
+                            const cellToDelete =
+                                doc.notebook.cellContents[op.id];
                             if (cellToDelete) {
                                 validateAndLogId(
                                     cellToDelete.id,
@@ -845,13 +938,15 @@ You MUST provide a brief explanation followed by <edit> tags with valid JSON!`,
                                 // Remove from cellContents
                                 delete doc.notebook.cellContents[op.id];
                                 // Remove from cellOrder
-                                const orderIndex = doc.notebook.cellOrder.indexOf(op.id);
+                                const orderIndex =
+                                    doc.notebook.cellOrder.indexOf(op.id);
                                 if (orderIndex !== -1) {
-                                    doc.notebook.cellOrder.splice(orderIndex, 1);
+                                    doc.notebook.cellOrder.splice(
+                                        orderIndex,
+                                        1
+                                    );
                                 }
-                                console.log(
-                                    `🗑️ Deleted cell with ID ${op.id}`
-                                );
+                                console.log(`🗑️ Deleted cell with ID ${op.id}`);
                             } else {
                                 console.log(
                                     `⚠️ Cell ${op.id} not found for deletion`
@@ -861,7 +956,9 @@ You MUST provide a brief explanation followed by <edit> tags with valid JSON!`,
                     }
                 }
 
-                console.log("✅ All operations completed successfully");
+                console.log(
+                    "✅ All power system operations completed successfully"
+                );
             });
         },
     },

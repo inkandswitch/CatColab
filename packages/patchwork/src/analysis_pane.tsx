@@ -1,4 +1,4 @@
-import { createResource, Show } from "solid-js";
+import { createEffect, createResource, Show } from "solid-js";
 
 import { AnalysisNotebookEditor } from "../../frontend/src/analysis/analysis_editor";
 import { getLiveAnalysisFromRepo } from "../../frontend/src/analysis";
@@ -57,6 +57,7 @@ export function AnalysisPaneComponent(props: SolidToolProps) {
                                 >
                                     <AnalysisNotebookEditor
                                         liveAnalysis={liveAnalysis()!}
+                                        annotations={props.annotations}
                                     />
                                 </TheoryLibraryContext.Provider>
                             </AnnotationsContext.Provider>

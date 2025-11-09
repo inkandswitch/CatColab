@@ -5,7 +5,10 @@ import {
     useRepo,
 } from "@automerge/automerge-repo-react-hooks";
 import type { EditorProps } from "@patchwork/sdk";
-import { useAllAnnotations } from "@patchwork/sdk/annotations";
+import {
+    type AnnotationWithUIState,
+    useAllAnnotations,
+} from "@patchwork/sdk/annotations";
 import type { Cell, Uuid } from "catlog-wasm";
 import React, { useEffect, useMemo, useRef } from "react";
 import { type Accessor, type JSX, createSignal } from "solid-js";
@@ -21,6 +24,7 @@ export type SolidToolProps = {
     docUrl: string;
     repo: Repo;
     annotationsContextValue: Accessor<ReturnType<typeof useAllAnnotations>>;
+    annotations: AnnotationWithUIState[];
 };
 
 export const ModelTool: React.FC<EditorProps<Uuid, Cell<unknown>>> = ({
@@ -139,6 +143,45 @@ const Tool: React.FC<
         }
     }, [allAnnotations, setAnnotationsContextValue]);
 
+    const docLinkWithAnnotations = useMemo(() => {
+        return allAnnotations.docLinksWithAnnotations?.find(
+            (docLinkWithAnnotations) =>
+                docLinkWithAnnotations.url === docUrl ||
+                docLinkWithAnnotations.main?.url === docUrl
+        );
+    }, [allAnnotations, docUrl]);
+
+    // this is soo bad, only rerender when the annotations change
+    // so we don't remount on each key stroke
+    const memoKey = useMemo(() => {
+        return JSON.stringify(
+            docLinkWithAnnotations?.annotations.map((a) => {
+                if (a.type === "added") {
+                    return {
+                        type: a.type,
+                        pointer: a.pointer.target,
+                        isSelected: a.isSelected,
+                    };
+                }
+                if (a.type === "changed") {
+                    return {
+                        type: a.type,
+                        before: a.before.target,
+                        after: a.after.target,
+                        isSelected: a.isSelected,
+                    };
+                }
+            })
+        );
+    }, [docLinkWithAnnotations]);
+
+    const docAnnotations = useMemo(
+        () => docLinkWithAnnotations?.annotations ?? [],
+
+        // this is so bad
+        [memoKey, docUrl]
+    );
+
     // mount the solid component once the handle and repo are available
     useEffect(() => {
         const annotationContextValue = getAnnotationsContextValue();
@@ -158,8 +201,9 @@ const Tool: React.FC<
                     createComponent(solidComponent, {
                         docUrl,
                         repo,
-                        annotationsContextValue: () =>
-                            getAnnotationsContextValue()!,
+                        annotations: docAnnotations,
+                        annotationsContextValue:
+                            getAnnotationsContextValue as any,
                     }),
                 solidContainerRef.current
             );
@@ -172,7 +216,14 @@ const Tool: React.FC<
                 solidDisposeRef.current = null;
             }
         };
-    }, [docUrl, handle, solidComponent, getAnnotationsContextValue]);
+    }, [
+        docUrl,
+        handle,
+        solidComponent,
+        getAnnotationsContextValue,
+        repo,
+        docAnnotations,
+    ]);
 
     if (!handle) {
         return null;
