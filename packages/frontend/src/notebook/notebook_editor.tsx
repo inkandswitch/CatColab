@@ -34,11 +34,13 @@ import { materializeFromAutomerge } from "../util/materialize_from_automerge";
 import {
     type CellActions,
     type CellDragData,
+    DeletedCellView,
     type FormalCellEditorProps,
     isCellDragData,
     NotebookCell,
     RichTextCellEditor,
 } from "./notebook_cell";
+import type { NotebookDiff } from "./notebook_diff";
 
 import "./notebook_editor.css";
 
@@ -95,6 +97,13 @@ export function NotebookEditor<T>(props: {
     If omitted, a deep copy is performed.
      */
     duplicateCell?: (content: T) => T;
+
+    /** Diff against a baseline version of the notebook.
+
+    When set, cells are highlighted as added or changed and deleted cells are
+    shown as markers. When omitted, the notebook renders normally.
+     */
+    diff?: NotebookDiff<T>;
 }) {
     // oxlint-disable-next-line solid/reactivity -- Focus handles are stable for a mounted notebook.
     const cellFocus = useChildFocus<Uuid>(props.focus);
@@ -278,6 +287,13 @@ export function NotebookEditor<T>(props: {
                 </div>
             </Show>
             <ul class="notebook-cells">
+                <For each={props.diff?.deletedCells.get(null)}>
+                    {(deletedCell) => (
+                        <li>
+                            <DeletedCellView cell={deletedCell} cellLabel={props.cellLabel} />
+                        </li>
+                    )}
+                </For>
                 <For each={props.notebook.cellOrder}>
                     {(cellId, i) => {
                         const focus = () => cellFocus.childFocus(cellId);
@@ -373,6 +389,7 @@ export function NotebookEditor<T>(props: {
                                     }
                                     currentDropTarget={currentDropTarget()}
                                     setCurrentDropTarget={setCurrentDropTarget}
+                                    diffStatus={props.diff?.cellStatus.get(cellId)}
                                 >
                                     <Switch>
                                         <Match when={cell.tag === "rich-text"}>
@@ -399,11 +416,22 @@ export function NotebookEditor<T>(props: {
                                                     }
                                                     focus={focus()}
                                                     actions={cellActions}
+                                                    baselineContent={props.diff?.baselineContent(
+                                                        cell.id,
+                                                    )}
                                                 />
                                             )}
                                         </Match>
                                     </Switch>
                                 </NotebookCell>
+                                <For each={props.diff?.deletedCells.get(cellId)}>
+                                    {(deletedCell) => (
+                                        <DeletedCellView
+                                            cell={deletedCell}
+                                            cellLabel={props.cellLabel}
+                                        />
+                                    )}
+                                </For>
                             </li>
                         );
                     }}

@@ -14,9 +14,15 @@ importers:
       '@automerge/automerge-repo':
         specifier: ^2.5.5
         version: 2.5.5
+      '@inkandswitch/patchwork-providers-solid':
+        specifier: ^0.2.3
+        version: 0.2.6(@automerge/automerge-repo-solid-primitives@2.7.0-authors.1(@automerge/automerge@3.2.5)(solid-js@1.9.9))(@automerge/automerge-repo@2.5.5)(solid-js@1.9.9)
       catcolab-document-methods:
         specifier: link:../document-methods
         version: link:../document-methods
+      catcolab-document-types:
+        specifier: link:../document-types/pkg
+        version: link:../document-types/pkg
       catlog-wasm:
         specifier: link:../catlog-wasm/dist/pkg-browser
         version: link:../catlog-wasm/dist/pkg-browser
@@ -78,6 +84,13 @@ packages:
   '@automerge/automerge-repo-network-websocket@2.6.0-subduction.47':
     resolution: {integrity: sha512-A8aDy9jizU+6Pb5F6GSqSFNHAAXICib7uV60KHytEZjANL+PU2lMTpAhQnOG15NfJXX3mKXIsQ/duOZIsCRcZA==}
     engines: {node: '>=22.13'}
+
+  '@automerge/automerge-repo-solid-primitives@2.7.0-authors.1':
+    resolution: {integrity: sha512-KKdckXyJ6i01hQFBDYQe0R7PSHR98/6lzkw5jGDLvL5qah+FRS9EZGWAhooqpn8UlSpjDPU0JmC6Q0MJeBR0Uw==}
+    engines: {node: '>=22.13'}
+    peerDependencies:
+      '@automerge/automerge': ^3.0.0
+      solid-js: ^1.9.4
 
   '@automerge/automerge-repo-storage-indexeddb@2.6.0-subduction.47':
     resolution: {integrity: sha512-fYn6nse7jQnVb9EploTsBuYUzW7xFin2HZLneSEQ7w4pRCilIU92ghZEjZSWRKEPunSN0MYEvfJJJdlLyYTdkQ==}
@@ -525,6 +538,13 @@ packages:
       '@automerge/automerge': '*'
       '@automerge/automerge-repo': '*'
       '@inkandswitch/patchwork-filesystem': ^0.2.5
+
+  '@inkandswitch/patchwork-providers-solid@0.2.6':
+    resolution: {integrity: sha512-00feQpUlzHiX3/h1iXLVCaGqqnwnWIbPHnX3gqAZJlsQk4/VP8OtdDyj3MguCHdAliQY2lezuS9nxAaP6+Ov7A==}
+    peerDependencies:
+      '@automerge/automerge-repo': '*'
+      '@automerge/automerge-repo-solid-primitives': '*'
+      solid-js: ^1.9.0
 
   '@inkandswitch/patchwork-providers@0.5.0':
     resolution: {integrity: sha512-TUnkHWA7j4NibVZWUHm4bQo78CZJboGH2tSQ0riCIodlElQizzpkqU5N/bjcL1JK7ItObHYpvOTvZZ5nqvWjqQ==}
@@ -1867,6 +1887,11 @@ snapshots:
       - supports-color
       - utf-8-validate
 
+  '@automerge/automerge-repo-solid-primitives@2.7.0-authors.1(@automerge/automerge@3.2.5)(solid-js@1.9.9)':
+    dependencies:
+      '@automerge/automerge': 3.2.5
+      solid-js: 1.9.9
+
   '@automerge/automerge-repo-storage-indexeddb@2.6.0-subduction.47':
     dependencies:
       '@automerge/automerge-repo': 2.6.0-subduction.47
@@ -2338,6 +2363,13 @@ snapshots:
       resolve.exports: 2.0.3
     transitivePeerDependencies:
       - supports-color
+
+  '@inkandswitch/patchwork-providers-solid@0.2.6(@automerge/automerge-repo-solid-primitives@2.7.0-authors.1(@automerge/automerge@3.2.5)(solid-js@1.9.9))(@automerge/automerge-repo@2.5.5)(solid-js@1.9.9)':
+    dependencies:
+      '@automerge/automerge-repo': 2.5.5
+      '@automerge/automerge-repo-solid-primitives': 2.7.0-authors.1(@automerge/automerge@3.2.5)(solid-js@1.9.9)
+      '@inkandswitch/patchwork-providers': 0.5.0(@automerge/automerge-repo@2.5.5)
+      solid-js: 1.9.9
 
   '@inkandswitch/patchwork-providers@0.5.0(@automerge/automerge-repo@2.5.5)':
     dependencies:

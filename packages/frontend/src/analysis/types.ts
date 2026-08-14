@@ -26,6 +26,12 @@ export type AnalysisProps<T> = {
 
     /** Update content associated with the analysis. */
     changeContent: (f: (content: T) => void) => void;
+
+    /** Content of the analysis at a diff baseline, when shown in a diff view
+    and the content has changed. Components may use it to display before/after
+    values; most ignore it.
+     */
+    baselineContent?: T;
 };
 
 /** Props passed to a model analysis component. */

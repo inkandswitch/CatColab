@@ -38,6 +38,35 @@ export default function MassAction(
 ) {
     const elaboratedModel = () => props.liveModel.elaboratedModel();
 
+    /** Read-only "Before" column showing baseline values in a diff view.
+
+    Returns no column when there is no baseline or when no row's value differs
+    from it, so tables look normal outside of diff views.
+     */
+    const beforeColumn = <Row,>(args: {
+        rows: Row[];
+        data: (row: Row) => number | undefined;
+        baselineData: (baseline: MassActionProblemData, row: Row) => number | undefined;
+        default?: number;
+    }): ColumnSchema<Row>[] => {
+        const baseline = props.baselineContent;
+        if (!baseline) {
+            return [];
+        }
+        const before = (row: Row) => args.baselineData(baseline, row) ?? args.default ?? 0;
+        const current = (row: Row) => args.data(row) ?? args.default ?? 0;
+        if (!args.rows.some((row) => before(row) !== current(row))) {
+            return [];
+        }
+        return [
+            {
+                contentType: "string",
+                name: "Before",
+                content: (row) => (before(row) === current(row) ? "" : before(row).toString()),
+            },
+        ];
+    };
+
     // Irrelevant of the value of massConservationType, we only ever need a single
     // schema for objects: each object needs to be assigned an initial value.
 
@@ -49,12 +78,17 @@ export default function MassAction(
         return props.stateType ? model.obGeneratorsWithType(props.stateType) : model.obGenerators();
     });
 
-    const obSchema: ColumnSchema<QualifiedName>[] = [
+    const obSchema = (): ColumnSchema<QualifiedName>[] => [
         {
             contentType: "string",
             header: true,
             content: (id) => elaboratedModel()?.obGeneratorLabel(id)?.join(".") ?? "",
         },
+        ...beforeColumn({
+            rows: obGenerators(),
+            data: (id) => props.content.initialValues[id],
+            baselineData: (baseline, id) => baseline.initialValues[id],
+        }),
         createNumericalColumn({
             name: "Initial value",
             data: (id) => props.content.initialValues[id],
@@ -142,12 +176,18 @@ export default function MassAction(
     // value of MassConservationType. We might as well construct all possibilities.
 
     // Firstly, the case MassConservationType = Balanced
-    const morSchema: ColumnSchema<QualifiedName>[] = [
+    const morSchema = (): ColumnSchema<QualifiedName>[] => [
         {
             contentType: "string",
             header: true,
             content: (mor) => elaboratedModel()?.morGeneratorLabel(mor)?.join(".") ?? "",
         },
+        ...beforeColumn({
+            rows: morGenerators(),
+            data: (mor) => props.content.rates[mor],
+            baselineData: (baseline, mor) => baseline.rates[mor],
+            default: 1,
+        }),
         createNumericalColumn({
             name: "Rate (𝑟)",
             data: (mor) => props.content.rates[mor],
@@ -161,12 +201,18 @@ export default function MassAction(
     ];
 
     // Secondly, the case MassConservationType = Unbalanced(PerTransition)
-    const morInputSchema: ColumnSchema<QualifiedName>[] = [
+    const morInputSchema = (): ColumnSchema<QualifiedName>[] => [
         {
             contentType: "string",
             header: true,
             content: (mor) => elaboratedModel()?.morGeneratorLabel(mor)?.join(".") ?? "",
         },
+        ...beforeColumn({
+            rows: morGenerators(),
+            data: (mor) => props.content.transitionConsumptionRates[mor],
+            baselineData: (baseline, mor) => baseline.transitionConsumptionRates[mor],
+            default: 1,
+        }),
         createNumericalColumn({
             name: "Consumption (𝜅)",
             data: (mor) => props.content.transitionConsumptionRates[mor],
@@ -178,12 +224,18 @@ export default function MassAction(
                 }),
         }),
     ];
-    const morOutputSchema: ColumnSchema<QualifiedName>[] = [
+    const morOutputSchema = (): ColumnSchema<QualifiedName>[] => [
         {
             contentType: "string",
             header: true,
             content: (mor) => elaboratedModel()?.morGeneratorLabel(mor)?.join(".") ?? "",
         },
+        ...beforeColumn({
+            rows: morGenerators(),
+            data: (mor) => props.content.transitionProductionRates[mor],
+            baselineData: (baseline, mor) => baseline.transitionProductionRates[mor],
+            default: 1,
+        }),
         createNumericalColumn({
             name: "Production (𝜌)",
             data: (mor) => props.content.transitionProductionRates[mor],
@@ -197,7 +249,7 @@ export default function MassAction(
     ];
 
     // Finally, the case MassConservationType = Unbalanced(PerPlace)
-    const morInputsSchema: ColumnSchema<[QualifiedName, QualifiedName]>[] = [
+    const morInputsSchema = (): ColumnSchema<[QualifiedName, QualifiedName]>[] => [
         {
             contentType: "string",
             header: true,
@@ -208,6 +260,12 @@ export default function MassAction(
                 (morLabelOrDefault(mor, elaboratedModel()) ?? "") +
                 "]",
         },
+        ...beforeColumn({
+            rows: morGeneratorsInputs(),
+            data: ([mor, input]) => props.content.placeConsumptionRates[mor]?.[input],
+            baselineData: (baseline, [mor, input]) => baseline.placeConsumptionRates[mor]?.[input],
+            default: 1,
+        }),
         createNumericalColumn({
             name: "Consumption (𝜅)",
             data: ([mor, input]) => props.content.placeConsumptionRates[mor]?.[input],
@@ -223,7 +281,7 @@ export default function MassAction(
                 }),
         }),
     ];
-    const morOutputsSchema: ColumnSchema<[QualifiedName, QualifiedName]>[] = [
+    const morOutputsSchema = (): ColumnSchema<[QualifiedName, QualifiedName]>[] => [
         {
             contentType: "string",
             header: true,
@@ -234,6 +292,12 @@ export default function MassAction(
                 " → " +
                 (elaboratedModel()?.obGeneratorLabel(output)?.join(".") ?? ""),
         },
+        ...beforeColumn({
+            rows: morGeneratorsOutputs(),
+            data: ([mor, output]) => props.content.placeProductionRates[mor]?.[output],
+            baselineData: (baseline, [mor, output]) => baseline.placeProductionRates[mor]?.[output],
+            default: 1,
+        }),
         createNumericalColumn({
             name: "Production (𝜌)",
             data: ([mor, output]) => props.content.placeProductionRates[mor]?.[output],
@@ -254,7 +318,7 @@ export default function MassAction(
     const ParameterTables = () => (
         <Switch>
             <Match when={props.content.massConservationType.type === "Balanced"}>
-                <FixedTableEditor rows={morGenerators()} schema={morSchema} />
+                <FixedTableEditor rows={morGenerators()} schema={morSchema()} />
             </Match>
             <Match
                 when={
@@ -262,8 +326,8 @@ export default function MassAction(
                     props.content.massConservationType.granularity === "PerTransition"
                 }
             >
-                <FixedTableEditor rows={morGenerators()} schema={morInputSchema} />
-                <FixedTableEditor rows={morGenerators()} schema={morOutputSchema} />
+                <FixedTableEditor rows={morGenerators()} schema={morInputSchema()} />
+                <FixedTableEditor rows={morGenerators()} schema={morOutputSchema()} />
             </Match>
             <Match
                 when={
@@ -271,14 +335,19 @@ export default function MassAction(
                     props.content.massConservationType.granularity === "PerPlace"
                 }
             >
-                <FixedTableEditor rows={morGeneratorsInputs()} schema={morInputsSchema} />
-                <FixedTableEditor rows={morGeneratorsOutputs()} schema={morOutputsSchema} />
+                <FixedTableEditor rows={morGeneratorsInputs()} schema={morInputsSchema()} />
+                <FixedTableEditor rows={morGeneratorsOutputs()} schema={morOutputsSchema()} />
             </Match>
         </Switch>
     );
 
     // Finally, we need the duration, and then we can return everything.
-    const toplevelSchema: ColumnSchema<null>[] = [
+    const toplevelSchema = (): ColumnSchema<null>[] => [
+        ...beforeColumn({
+            rows: [null],
+            data: () => props.content.duration,
+            baselineData: (baseline) => baseline.duration,
+        }),
         createNumericalColumn({
             name: "Duration",
             data: (_) => props.content.duration,
@@ -312,9 +381,9 @@ export default function MassAction(
             />
             <Foldable title="Parameters" defaultExpanded>
                 <div class="parameters">
-                    <FixedTableEditor rows={obGenerators()} schema={obSchema} />
+                    <FixedTableEditor rows={obGenerators()} schema={obSchema()} />
                     <ParameterTables />
-                    <FixedTableEditor rows={[null]} schema={toplevelSchema} />
+                    <FixedTableEditor rows={[null]} schema={toplevelSchema()} />
                 </div>
             </Foldable>
             <Foldable title="Equations">

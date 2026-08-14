@@ -45,4 +45,20 @@ export const plugins = [
             return renderAnalysisTool;
         },
     },
+    {
+        // Instruction pack for Patchwork's chat computer (the `llm:skill`
+        // type the chat tool consumes): how to build and edit stock-and-flow
+        // models and their mass-action analyses with the generic document
+        // tools. Auto-activates when a CatColab doc is focused.
+        type: "llm:skill",
+        id: "catcolab-stock-flow",
+        name: "CatColab Stock & Flow",
+        description:
+            "Create and edit CatColab stock-and-flow models and mass-action simulation analyses. Applies when the focused document is a CatColab model/analysis, or when the user asks to model a system-dynamics problem.",
+        datatypes: ["catcolab-model", "catcolab-analysis"],
+        async load() {
+            const { skill } = await import("./llm_skill");
+            return skill;
+        },
+    },
 ];

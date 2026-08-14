@@ -16,9 +16,10 @@ import Trash2 from "lucide-solid/icons/trash-2";
 import type { EditorView } from "prosemirror-view";
 import { createEffect, createSignal, type JSX, onCleanup, Show } from "solid-js";
 
-import type { Uuid } from "catcolab-document-types";
+import type { Cell, Uuid } from "catcolab-document-types";
 import { type Completion, Completions, type FocusHandle, IconButton } from "catcolab-ui-components";
 import { RichTextEditor } from "../components";
+import type { CellDiffStatus } from "./notebook_diff";
 import { CellTypePopover } from "./notebook_editor";
 
 import "./notebook_cell.css";
@@ -104,6 +105,8 @@ export function NotebookCell(props: {
     setPopoverOpen?: (open: boolean) => void;
     currentDropTarget: string | null;
     setCurrentDropTarget: (cellId: string | null) => void;
+    /** Diff status of this cell relative to a baseline, if shown in a diff view. */
+    diffStatus?: CellDiffStatus;
 }) {
     let rootRef!: HTMLDivElement;
     let handleRef!: HTMLButtonElement;
@@ -222,7 +225,11 @@ export function NotebookCell(props: {
     return (
         <div
             class="cell"
-            classList={{ "cell-dragging": isDragging() }}
+            classList={{
+                "cell-dragging": isDragging(),
+                "cell-diff-added": props.diffStatus === "added",
+                "cell-diff-changed": props.diffStatus === "changed",
+            }}
             onMouseEnter={showGutter}
             onMouseLeave={hideGutter}
             ref={rootRef}
@@ -316,9 +323,59 @@ export function RichTextCellEditor(
     );
 }
 
+/** Marker for a cell that was deleted relative to a diff baseline.
+
+Deleted cells no longer exist in the live document, so instead of a live
+editor we render a compact summary of the baseline cell.
+ */
+export function DeletedCellView<T>(props: {
+    cell: Cell<T>;
+    cellLabel?: (content: T) => string | undefined;
+}) {
+    const tag = () =>
+        props.cell.tag === "formal" ? props.cellLabel?.(props.cell.content) : undefined;
+
+    const summary = () => {
+        const cell = props.cell;
+        if (cell.tag === "rich-text") {
+            const text = typeof cell.content === "string" ? cell.content.trim() : "";
+            return text || "Text cell";
+        }
+        // Without a live editor, fall back to whatever human-readable handle
+        // the content carries: a declared name or the content's identifier.
+        const content = cell.content as { name?: unknown; id?: unknown };
+        if (typeof content?.name === "string" && content.name) {
+            return content.name;
+        }
+        if (typeof content?.id === "string" && content.id) {
+            return content.id;
+        }
+        return "Cell";
+    };
+
+    return (
+        <div class="cell cell-diff-deleted">
+            <div class="cell-content">
+                <span class="cell-diff-deleted-summary">{summary()}</span>
+                <span class="cell-diff-deleted-note">deleted</span>
+            </div>
+            <Show when={tag()}>
+                <div class="cell-tag">{tag()}</div>
+            </Show>
+        </div>
+    );
+}
+
 /** Interface for editors of cells with formal content.
  */
 export type FormalCellEditorProps<T> = CellEditorProps & {
     content: T;
     changeContent: (f: (content: T) => void) => void;
+
+    /** Content of the cell at a diff baseline, when the cell has changed.
+
+    Only set when the notebook is rendered with a diff and this cell differs
+    from the baseline. Editors may use it for before/after displays.
+     */
+    baselineContent?: T;
 };

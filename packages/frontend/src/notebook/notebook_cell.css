@@ -37,6 +37,55 @@
     max-width: 100%;
 }
 
+/* Diff highlights, shown only when the notebook is rendered with a diff.
+The whole row is tinted, including the cell-type tag on the right. The
+negative margin compensates for the border and padding so cell content stays
+aligned with unhighlighted cells. */
+.cell-diff-added,
+.cell-diff-changed,
+.cell-diff-deleted {
+    border-left: 3px solid;
+    border-radius: 3px;
+    padding: 2px 6px;
+    margin-left: -9px;
+}
+
+.cell-diff-added {
+    border-left-color: #22c55e;
+    background-color: rgb(34 197 94 / 10%);
+}
+
+.cell-diff-changed {
+    border-left-color: #eab308;
+    background-color: rgb(234 179 8 / 12%);
+}
+
+.cell-diff-deleted {
+    border-left-color: #ef4444;
+    background-color: rgb(239 68 68 / 8%);
+}
+
+.cell-diff-deleted > .cell-content {
+    color: var(--color-gray-600);
+    display: flex;
+    gap: 0.5em;
+    align-items: baseline;
+    min-width: 0;
+}
+
+.cell-diff-deleted-summary {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    text-decoration: line-through;
+}
+
+.cell-diff-deleted-note {
+    color: #ef4444;
+    font-size: 11pt;
+    flex-shrink: 0;
+}
+
 .drop-indicator-with-dots {
     height: 2px;
     transition: opacity 0.15s ease;
