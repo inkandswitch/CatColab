@@ -280,8 +280,16 @@ export const RichTextEditor = (
             },
         });
 
-        const onRemoteChange = ({ patches }: DocHandleChangePayload<unknown>) => {
-            if (hasStructuralReplacement(patches, props.path)) {
+        const onRemoteChange = (payload: DocHandleChangePayload<unknown>) => {
+            // A Patchwork overlay swap (branch switch) re-points the handle at
+            // a different document and carries no patches, since no patch
+            // stream connects two forks. ProseMirror's automerge plugin can
+            // only follow patches, so the editor has to be rebuilt from the
+            // new document — otherwise the cell keeps showing (and editing
+            // against) the branch we just left.
+            const scopeReplaced =
+                (payload as { scopeReplaced?: boolean }).scopeReplaced === true;
+            if (scopeReplaced || hasStructuralReplacement(payload.patches, props.path)) {
                 setReinitTrigger((c) => c + 1);
             }
         };

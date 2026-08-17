@@ -184,7 +184,16 @@ export class ModelLibrary<RefId> {
 
     private async onChange(key: ModelKey, payload: DocHandleChangePayload<Document>) {
         const doc = payload.doc;
-        if (payload.patches.some((patch) => isPatchToFormalContent(doc, patch))) {
+        // A Patchwork overlay swap (branch switch) replaces the doc wholesale
+        // and emits a change with an EMPTY patch list; its `scopeReplaced` flag
+        // (a Patchwork extension to the payload) means "re-read doc(), don't
+        // trust patches". Without this, the elaborated model — and everything
+        // derived from it, like simulations — stays frozen on the old branch.
+        const scopeReplaced = (payload as { scopeReplaced?: boolean }).scopeReplaced === true;
+        const reelaborate =
+            scopeReplaced || payload.patches.some((patch) => isPatchToFormalContent(doc, patch));
+
+        if (reelaborate) {
             const [theory, validatedModel] = await this.elaborateAndValidate(key, doc);
 
             const generation = (this.entries.get(key)?.generation ?? 0) + 1;
