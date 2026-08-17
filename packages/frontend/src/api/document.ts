@@ -116,14 +116,21 @@ export function makeLiveDoc<Doc extends Document>(
 
 /** Create a Solid Store that tracks an Automerge document. */
 export function makeDocHandleReactive<T extends object>(handle: DocHandle<T>): T {
-    const init = handle.doc();
-
-    const [store, setStore] = createStore<T>(init);
+    // The store must own its object tree, so deep-copy everything that goes
+    // into it. Solid stores write through their proxy into the raw object, and
+    // `handle.doc()` can be a materialization *cached inside the repo*: seeding
+    // the store with it (or letting `reconcile` graft subtrees of a later
+    // `payload.doc` in by reference) lets reconciliation silently rewrite the
+    // repo's cached copy of the document. With Patchwork's branch overlay this
+    // corrupted the checked-out document wholesale — switching to a draft
+    // reconciled the draft's content into main's cached doc, so switching back
+    // to main kept showing (and every other consumer of main saw) draft data.
+    const [store, setStore] = createStore<T>(structuredClone(handle.doc()));
 
     const onChange = (payload: DocHandleChangePayload<T>) => {
         // Use [`reconcile`](https://www.solidjs.com/tutorial/stores_immutable)
         // function to diff the data and thus avoid re-rendering the whole DOM.
-        setStore(reconcile(payload.doc));
+        setStore(reconcile(structuredClone(payload.doc)));
     };
 
     handle.on("change", onChange);
