@@ -102,12 +102,16 @@ export class ModelLibrary<RefId> {
     private entries: ReactiveMap<ModelKey, ModelEntry>;
     private handles: Map<ModelKey, DocHandleWithDestructor>;
     private isElaborating: Set<ModelKey>;
+    private pendingDocs: Map<ModelKey, Document>;
+    private elaborationLoops: Set<ModelKey>;
     private params: ModelLibraryParameters<RefId>;
 
     constructor(params: ModelLibraryParameters<RefId>) {
         this.entries = new ReactiveMap();
         this.handles = new Map();
         this.isElaborating = new Set();
+        this.pendingDocs = new Map();
+        this.elaborationLoops = new Set();
         this.params = params;
     }
 
@@ -153,6 +157,7 @@ export class ModelLibrary<RefId> {
         }
         this.handles.clear();
         this.entries.clear();
+        this.pendingDocs.clear();
     }
 
     /** Adds a model to the library, if it has not already been added. */
@@ -165,6 +170,15 @@ export class ModelLibrary<RefId> {
         const docHandle = await this.params.fetch(refId);
         const [theory, validatedModel] = await this.elaborateAndValidate(key, docHandle.doc());
 
+        // Record the entry before subscribing, so a change event arriving
+        // right after subscription can't have its (newer) result overwritten
+        // by this initial (older) elaboration.
+        this.entries.set(key, {
+            theory,
+            validatedModel,
+            generation: 1,
+        });
+
         const onChange = (payload: DocHandleChangePayload<Document>) => this.onChange(key, payload);
         docHandle.on("change", onChange);
 
@@ -174,15 +188,9 @@ export class ModelLibrary<RefId> {
                 docHandle.off("change", onChange);
             },
         });
-
-        this.entries.set(key, {
-            theory,
-            validatedModel,
-            generation: 1,
-        });
     }
 
-    private async onChange(key: ModelKey, payload: DocHandleChangePayload<Document>) {
+    private onChange(key: ModelKey, payload: DocHandleChangePayload<Document>) {
         const doc = payload.doc;
         // A Patchwork overlay swap (branch switch) replaces the doc wholesale
         // and emits a change with an EMPTY patch list; its `scopeReplaced` flag
@@ -194,11 +202,49 @@ export class ModelLibrary<RefId> {
             scopeReplaced || payload.patches.some((patch) => isPatchToFormalContent(doc, patch));
 
         if (reelaborate) {
-            const [theory, validatedModel] = await this.elaborateAndValidate(key, doc);
-
-            const generation = (this.entries.get(key)?.generation ?? 0) + 1;
-            this.entries.set(key, { theory, validatedModel, generation });
+            this.scheduleElaboration(key, doc);
         }
+    }
+
+    /** Re-elaborate a changed document, serialized per key.
+
+    Change events can arrive in bursts — Patchwork's history scrubber swaps the
+    backing doc once per snapped change during a drag. Elaborating each event
+    concurrently applied results in *completion* order, so an elaboration of an
+    intermediate historical state could overwrite the final one; worse, a
+    concurrent run for the same key trips the instantiation-cycle guard in
+    `elaborateAndValidate` and records the model as ill-formed. Instead, keep
+    one elaboration running per key and coalesce whatever arrives in the
+    meantime down to the newest doc.
+     */
+    private scheduleElaboration(key: ModelKey, doc: Document) {
+        this.pendingDocs.set(key, doc);
+        if (this.elaborationLoops.has(key)) {
+            return;
+        }
+        this.elaborationLoops.add(key);
+        void (async () => {
+            try {
+                let next = this.pendingDocs.get(key);
+                while (next !== undefined) {
+                    this.pendingDocs.delete(key);
+                    const [theory, validatedModel] = await this.elaborateAndValidate(key, next);
+                    next = this.pendingDocs.get(key);
+                    if (next !== undefined) {
+                        // Superseded while elaborating; skip straight to the newest.
+                        continue;
+                    }
+                    if (!this.handles.has(key)) {
+                        // The library was destroyed while elaborating.
+                        return;
+                    }
+                    const generation = (this.entries.get(key)?.generation ?? 0) + 1;
+                    this.entries.set(key, { theory, validatedModel, generation });
+                }
+            } finally {
+                this.elaborationLoops.delete(key);
+            }
+        })();
     }
 
     /** Gets reactive accessor for elaborated model. */
