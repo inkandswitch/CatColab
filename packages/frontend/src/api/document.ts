@@ -6,7 +6,7 @@ import type {
     Repo,
 } from "@automerge/automerge-repo";
 import jsonpatch from "fast-json-patch";
-import { type Accessor, createEffect, createSignal } from "solid-js";
+import { type Accessor, createEffect, createSignal, onCleanup } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import invariant from "tiny-invariant";
 
@@ -73,6 +73,13 @@ export async function findAndMigrate(
 ): Promise<DocHandle<Document>> {
     const docHandle = await repo.find<Document>(docId);
 
+    // A read-only handle (pinned at historical heads, e.g. by Patchwork's
+    // history scrubber) rejects writes, so skip migration and render the
+    // document as it was.
+    if (docHandle.isReadOnly()) {
+        return docHandle;
+    }
+
     // Perform any migrations on the document.
     const docBefore = docHandle.doc();
     const docAfter = migrateDocument(docBefore);
@@ -110,8 +117,37 @@ export function makeLiveDoc<Doc extends Document>(
     const docHandle = unknownDocHandle as DocHandle<Doc>;
 
     const doc = makeDocHandleReactive(docHandle);
-    const changeDoc = (f: ChangeFn<Doc>) => docHandle.change(f);
+    const changeDoc = (f: ChangeFn<Doc>) => {
+        // A read-only handle (pinned at historical heads) throws on `change`.
+        // Swallowing edits here makes the whole UI safely inert while viewing
+        // history: every editing affordance funnels through `changeDoc`.
+        if (docHandle.isReadOnly()) {
+            return;
+        }
+        docHandle.change(f);
+    };
     return { doc, changeDoc, docHandle };
+}
+
+/** Create a boolean signal tracking whether a document handle is read-only.
+
+A handle is read-only when pinned at fixed heads (e.g. by Patchwork's history
+scrubber). The state can flip in place: Patchwork swaps the handle's backing
+without changing its identity, signalled by a change event with
+`scopeReplaced: true`, so it is re-read on every such swap.
+ */
+export function createIsHandleReadOnly(handle: DocHandle<unknown>): Accessor<boolean> {
+    const [readOnly, setReadOnly] = createSignal(handle.isReadOnly());
+
+    const onChange = (payload: DocHandleChangePayload<unknown>) => {
+        if ((payload as { scopeReplaced?: boolean }).scopeReplaced === true) {
+            setReadOnly(handle.isReadOnly());
+        }
+    };
+    handle.on("change", onChange);
+    onCleanup(() => handle.off("change", onChange));
+
+    return readOnly;
 }
 
 /** Create a Solid Store that tracks an Automerge document. */

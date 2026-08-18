@@ -7,6 +7,7 @@ import {
     type LiveAnalysisDoc,
     type LiveModelAnalysisDoc,
 } from "../../frontend/src/analysis";
+import { createIsHandleReadOnly } from "../../frontend/src/api/document";
 import { AnalysisNotebookEditor } from "../../frontend/src/analysis/analysis_editor";
 import {
     createModelLibraryWithRepo,
@@ -23,6 +24,7 @@ import type { AnalysisDoc } from "./analysis_datatype";
 import { createNotebookDiff } from "./notebook_diff";
 
 import "../../ui-components/src/global.css";
+import "./readonly.css";
 
 type ToolElement = HTMLElement & { repo: Repo };
 
@@ -103,6 +105,13 @@ function ModelAnalysisPanes(props: { modelAnalysis: LiveModelAnalysisDoc; elemen
     const modelDiff = createNotebookDiff(props.element, modelHandle);
     const analysisDiff = createNotebookDiff(props.element, analysisHandle);
 
+    // A history-pinned handle is at fixed heads and rejects writes, so its
+    // pane renders read-only (form controls are made inert via CSS; writes
+    // are also swallowed at the `changeDoc` level). Tracked live: the state
+    // flips in place when the handle's backing is swapped.
+    const modelReadOnly = createIsHandleReadOnly(modelHandle);
+    const analysisReadOnly = createIsHandleReadOnly(analysisHandle);
+
     // The host announces only the document the tool was opened with; the other
     // document of the pair is resolved by the tool itself. Announce both so
     // Patchwork's draft system counts both as draft members; otherwise the
@@ -114,6 +123,7 @@ function ModelAnalysisPanes(props: { modelAnalysis: LiveModelAnalysisDoc; elemen
     return (
         <div style={{ display: "flex", height: "100%" }}>
             <div
+                classList={{ "catcolab-readonly": modelReadOnly() }}
                 style={{
                     ...paneStyle,
                     "border-right": "1px solid rgba(0, 0, 0, 0.15)",
@@ -126,7 +136,7 @@ function ModelAnalysisPanes(props: { modelAnalysis: LiveModelAnalysisDoc; elemen
                     diff={modelDiff()}
                 />
             </div>
-            <div style={paneStyle}>
+            <div classList={{ "catcolab-readonly": analysisReadOnly() }} style={paneStyle}>
                 <DocumentHead liveDoc={props.modelAnalysis.liveDoc} />
                 <AnalysisNotebookEditor
                     liveAnalysis={props.modelAnalysis}

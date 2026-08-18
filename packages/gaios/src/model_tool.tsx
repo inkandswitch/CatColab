@@ -100,9 +100,14 @@ async function ensureLinkedAnalysis(
     };
 
     const analysisHandle = await repo.create2(docWithMeta);
-    handle.change((doc) => {
-        doc.analysisDocUrl = analysisHandle.url;
-    });
+    // A read-only model handle (pinned at historical heads by the history
+    // scrubber) rejects writes. The freshly created analysis still renders;
+    // the link is recorded the next time the model is opened live.
+    if (!handle.isReadOnly()) {
+        handle.change((doc) => {
+            doc.analysisDocUrl = analysisHandle.url;
+        });
+    }
     return analysisHandle;
 }
 

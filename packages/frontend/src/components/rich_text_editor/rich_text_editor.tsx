@@ -172,6 +172,11 @@ export const RichTextEditor = (
         const state = EditorState.create({ schema, plugins, doc: pmDoc });
         const view = new EditorView(editorRoot, {
             state,
+            // A read-only handle (pinned at historical heads) throws on
+            // `change`, so the editor must not accept input then. ProseMirror
+            // re-consults this on every state update, and a pin/unpin always
+            // arrives as a scope swap that rebuilds this view anyway.
+            editable: () => !props.handle.isReadOnly(),
             nodeViews: {
                 math_inline: (node, view, getPos) => new MathInlineView(node, view, getPos),
             },

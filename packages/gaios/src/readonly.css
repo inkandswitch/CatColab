@@ -1,0 +1,6 @@
+/* A pane whose document is pinned at historical heads (history scrubbing)
+rejects writes, so its form controls are made inert. Scrolling, folding, and
+the rich text editor (which turns off its own editability) keep working. */
+.catcolab-readonly :is(input, textarea, select) {
+    pointer-events: none;
+}
