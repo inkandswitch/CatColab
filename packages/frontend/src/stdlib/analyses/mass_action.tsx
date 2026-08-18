@@ -38,34 +38,21 @@ export default function MassAction(
 ) {
     const elaboratedModel = () => props.liveModel.elaboratedModel();
 
-    /** Read-only "Before" column showing baseline values in a diff view.
+    /** Baseline value accessor for a numerical column in a diff view.
 
-    Returns no column when there is no baseline or when no row's value differs
-    from it, so tables look normal outside of diff views.
+    Returns `undefined` outside of diff views, so tables look normal there.
+    When the returned value differs from the current one, the table cell is
+    highlighted and shows the old value struck through after the new one.
      */
-    const beforeColumn = <Row,>(args: {
-        rows: Row[];
-        data: (row: Row) => number | undefined;
-        baselineData: (baseline: MassActionProblemData, row: Row) => number | undefined;
-        default?: number;
-    }): ColumnSchema<Row>[] => {
-        const baseline = props.baselineContent;
-        if (!baseline) {
-            return [];
-        }
-        const before = (row: Row) => args.baselineData(baseline, row) ?? args.default ?? 0;
-        const current = (row: Row) => args.data(row) ?? args.default ?? 0;
-        if (!args.rows.some((row) => before(row) !== current(row))) {
-            return [];
-        }
-        return [
-            {
-                contentType: "string",
-                name: "Before",
-                content: (row) => (before(row) === current(row) ? "" : before(row).toString()),
-            },
-        ];
-    };
+    const baselineValue =
+        <Row,>(
+            data: (baseline: MassActionProblemData, row: Row) => number | undefined,
+            dflt = 0,
+        ): ((row: Row) => number | undefined) =>
+        (row) => {
+            const baseline = props.baselineContent;
+            return baseline ? (data(baseline, row) ?? dflt) : undefined;
+        };
 
     // Irrelevant of the value of massConservationType, we only ever need a single
     // schema for objects: each object needs to be assigned an initial value.
@@ -84,14 +71,10 @@ export default function MassAction(
             header: true,
             content: (id) => elaboratedModel()?.obGeneratorLabel(id)?.join(".") ?? "",
         },
-        ...beforeColumn({
-            rows: obGenerators(),
-            data: (id) => props.content.initialValues[id],
-            baselineData: (baseline, id) => baseline.initialValues[id],
-        }),
         createNumericalColumn({
             name: "Initial value",
             data: (id) => props.content.initialValues[id],
+            was: baselineValue((baseline, id) => baseline.initialValues[id]),
             validate: (_, data) => data >= 0,
             setData: (id, data) =>
                 props.changeContent((content) => {
@@ -182,15 +165,10 @@ export default function MassAction(
             header: true,
             content: (mor) => elaboratedModel()?.morGeneratorLabel(mor)?.join(".") ?? "",
         },
-        ...beforeColumn({
-            rows: morGenerators(),
-            data: (mor) => props.content.rates[mor],
-            baselineData: (baseline, mor) => baseline.rates[mor],
-            default: 1,
-        }),
         createNumericalColumn({
             name: "Rate (𝑟)",
             data: (mor) => props.content.rates[mor],
+            was: baselineValue((baseline, mor) => baseline.rates[mor], 1),
             default: 1,
             validate: (_, data) => data >= 0,
             setData: (mor, data) =>
@@ -207,15 +185,10 @@ export default function MassAction(
             header: true,
             content: (mor) => elaboratedModel()?.morGeneratorLabel(mor)?.join(".") ?? "",
         },
-        ...beforeColumn({
-            rows: morGenerators(),
-            data: (mor) => props.content.transitionConsumptionRates[mor],
-            baselineData: (baseline, mor) => baseline.transitionConsumptionRates[mor],
-            default: 1,
-        }),
         createNumericalColumn({
             name: "Consumption (𝜅)",
             data: (mor) => props.content.transitionConsumptionRates[mor],
+            was: baselineValue((baseline, mor) => baseline.transitionConsumptionRates[mor], 1),
             default: 1,
             validate: (_, data) => data >= 0,
             setData: (mor, data) =>
@@ -230,15 +203,10 @@ export default function MassAction(
             header: true,
             content: (mor) => elaboratedModel()?.morGeneratorLabel(mor)?.join(".") ?? "",
         },
-        ...beforeColumn({
-            rows: morGenerators(),
-            data: (mor) => props.content.transitionProductionRates[mor],
-            baselineData: (baseline, mor) => baseline.transitionProductionRates[mor],
-            default: 1,
-        }),
         createNumericalColumn({
             name: "Production (𝜌)",
             data: (mor) => props.content.transitionProductionRates[mor],
+            was: baselineValue((baseline, mor) => baseline.transitionProductionRates[mor], 1),
             default: 1,
             validate: (_, data) => data >= 0,
             setData: (mor, data) =>
@@ -260,15 +228,13 @@ export default function MassAction(
                 (morLabelOrDefault(mor, elaboratedModel()) ?? "") +
                 "]",
         },
-        ...beforeColumn({
-            rows: morGeneratorsInputs(),
-            data: ([mor, input]) => props.content.placeConsumptionRates[mor]?.[input],
-            baselineData: (baseline, [mor, input]) => baseline.placeConsumptionRates[mor]?.[input],
-            default: 1,
-        }),
         createNumericalColumn({
             name: "Consumption (𝜅)",
             data: ([mor, input]) => props.content.placeConsumptionRates[mor]?.[input],
+            was: baselineValue(
+                (baseline, [mor, input]) => baseline.placeConsumptionRates[mor]?.[input],
+                1,
+            ),
             default: 1,
             validate: (_, data) => data >= 0,
             setData: ([mor, input], data) =>
@@ -292,15 +258,13 @@ export default function MassAction(
                 " → " +
                 (elaboratedModel()?.obGeneratorLabel(output)?.join(".") ?? ""),
         },
-        ...beforeColumn({
-            rows: morGeneratorsOutputs(),
-            data: ([mor, output]) => props.content.placeProductionRates[mor]?.[output],
-            baselineData: (baseline, [mor, output]) => baseline.placeProductionRates[mor]?.[output],
-            default: 1,
-        }),
         createNumericalColumn({
             name: "Production (𝜌)",
             data: ([mor, output]) => props.content.placeProductionRates[mor]?.[output],
+            was: baselineValue(
+                (baseline, [mor, output]) => baseline.placeProductionRates[mor]?.[output],
+                1,
+            ),
             default: 1,
             validate: (_, data) => data >= 0,
             setData: ([mor, output], data) =>
@@ -343,14 +307,10 @@ export default function MassAction(
 
     // Finally, we need the duration, and then we can return everything.
     const toplevelSchema = (): ColumnSchema<null>[] => [
-        ...beforeColumn({
-            rows: [null],
-            data: () => props.content.duration,
-            baselineData: (baseline) => baseline.duration,
-        }),
         createNumericalColumn({
             name: "Duration",
             data: (_) => props.content.duration,
+            was: baselineValue((baseline) => baseline.duration),
             validate: (_, data) => data >= 0,
             setData: (_, data) =>
                 props.changeContent((content) => {

@@ -26,6 +26,14 @@ export type TextColumnSchema<Row> = BaseColumnSchema & {
     /** Text content of the column at the given row. */
     content: (row: Row) => string;
 
+    /** Baseline content of the column at the given row, in a diff view.
+
+    When defined and different from the current content, the cell is
+    highlighted and the old value is rendered struck through after the
+    current one. Return `undefined` when there is no baseline.
+     */
+    wasContent?: (row: Row) => string | undefined;
+
     /** Is the text valid as content for the column at the given row?
 
     If not specified, any content is considered valid.
@@ -88,6 +96,8 @@ export const createNumericalColumn = <Row,>(args: {
     name?: string;
     header?: boolean;
     data: (row: Row) => number | undefined;
+    /** Baseline data in a diff view; see `TextColumnSchema.wasContent`. */
+    was?: (row: Row) => number | undefined;
     default?: number;
     validate?: (row: Row, data: number) => boolean;
     setData?: (row: Row, data: number) => void;
@@ -103,6 +113,7 @@ export const createNumericalColumn = <Row,>(args: {
         }
         return value.toString();
     },
+    wasContent: args.was && ((row) => args.was?.(row)?.toString()),
     validate(row, text) {
         const parsed = Number(text);
         return !Number.isNaN(parsed) && (args.validate?.(row, parsed) ?? true);
@@ -195,20 +206,39 @@ function TextCellEditor<Row>(props: { row: Row; schema: TextColumnSchema<Row> })
     const [isValid, setIsValid] = createSignal(true);
     createEffect(() => setIsValid(schema().validate?.(row(), text()) ?? true));
 
+    // Diff view: the value this cell had at the baseline, when it differs.
+    const was = () => {
+        const before = schema().wasContent?.(row());
+        return before !== undefined && before !== schema().content(row()) ? before : undefined;
+    };
+
     return (
-        <Show when={schema().setContent} fallback={schema().content(row())}>
-            <input
-                class="fixed-table-cell-input"
-                classList={{
-                    invalid: !isValid(),
-                }}
-                type="text"
-                size="1"
-                value={text()}
-                onInput={(evt) => setText(evt.target.value)}
-                onChange={(evt) => applyText(evt.target.value)}
-            />
-        </Show>
+        <div class="fixed-table-cell" classList={{ "diff-changed": was() !== undefined }}>
+            <Show when={schema().setContent} fallback={schema().content(row())}>
+                <input
+                    class="fixed-table-cell-input"
+                    classList={{
+                        invalid: !isValid(),
+                    }}
+                    type="text"
+                    size="1"
+                    // When the old value is shown after the input, the input must
+                    // size to its content, or the table column won't widen to fit
+                    // both values and the current one gets clipped.
+                    style={
+                        was() === undefined
+                            ? undefined
+                            : { width: `${Math.max(text().length, 2)}ch`, flex: "none" }
+                    }
+                    value={text()}
+                    onInput={(evt) => setText(evt.target.value)}
+                    onChange={(evt) => applyText(evt.target.value)}
+                />
+            </Show>
+            <Show when={was()}>
+                {(before) => <s class="fixed-table-cell-was">{before()}</s>}
+            </Show>
+        </div>
     );
 }
 

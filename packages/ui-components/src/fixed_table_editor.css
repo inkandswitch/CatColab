@@ -26,6 +26,12 @@
     }
 }
 
+.fixed-table-cell {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
 .fixed-table-cell-input {
     background: transparent;
     border: none;
@@ -33,8 +39,23 @@
     font: inherit;
 
     width: 100%;
+    min-width: 3ch;
 }
 
 .fixed-table-cell-input.invalid {
     background: var(--color-form-invalid-bg);
+}
+
+/* Diff view: a cell whose value differs from the baseline is tinted (same
+palette as the notebook's changed-cell highlight) and shows the old value
+struck through after the current one. */
+.fixed-table-editor :is(td, th):has(> .fixed-table-cell.diff-changed) {
+    background-color: rgb(234 179 8 / 12%);
+    box-shadow: inset 3px 0 0 #eab308;
+}
+
+.fixed-table-cell-was {
+    color: var(--color-gray-600);
+    white-space: nowrap;
+    padding-right: 2px;
 }
